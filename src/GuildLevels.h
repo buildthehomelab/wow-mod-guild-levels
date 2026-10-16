@@ -4,7 +4,8 @@
  * A guild earns guild XP from its members' quests and from dungeon and raid bosses killed in a
  * guild group, and climbs from level 1 to 25. Every level from 2 to 25 unlocks one perk, the same
  * order as Cataclysm. The perks live in GuildLevelsPerks.cpp, the three castable ones in
- * GuildLevelsSpells.cpp, guild XP and storage in GuildLevelsMgr.cpp.
+ * GuildLevelsSpells.cpp, guild XP and storage in GuildLevelsMgr.cpp. Members also earn guild
+ * reputation (GuildLevelsRep.cpp) and spend it at the guild vendors (GuildLevelsRewards.cpp).
  *
  * Released under the MIT License.
  */
@@ -68,9 +69,21 @@ namespace GuildLevels
         SPELL_HAVE_GROUP        = 90453,
         SPELL_MASS_RESURRECTION = 90454,
         SPELL_FOR_GREAT_JUSTICE = 90455,    // hidden passive: mod-boss-coins' bonus coin chance
+
+        // Rewards (client + spell_dbc rows from tools/build_patch.py)
+        SPELL_GUILD_TELEPORT_8H = 90456,    // Renowned Guild Tabard
+        SPELL_GUILD_TELEPORT_2H = 90457,    // Illustrious Guild Tabard
+        SPELL_STANDARD_AURA_1   = 90461,    // the battle standards' area auras, ranks 1-3
+        SPELL_STANDARD_AURA_2   = 90462,
+        SPELL_STANDARD_AURA_3   = 90463,
+        SPELL_FLASK_OF_BATTLE   = 90466,
     };
 
     constexpr uint32 GO_GUILD_CHEST = 9503400;  // Mobile Banking's guild bank, gameobject type 34
+
+    // The battle standards the standard items plant, ranks 1-3 (creature_template).
+    constexpr uint32 NPC_BATTLE_STANDARD_1 = 9503410;
+    constexpr uint32 NPC_BATTLE_STANDARD_3 = 9503412;
 
     struct Config
     {
@@ -106,6 +119,15 @@ namespace GuildLevels
         uint32 bartering = 10;
         uint32 massResHealth = 35;
         uint32 massResMinutes = 10;     // a player can be raised by Mass Resurrection once per this
+
+        // Guild reputation
+        bool repEnabled = true;
+        uint32 repFaction = 1168;       // Faction.dbc row the rep goes to
+        uint32 repXPPerRep = 36;        // guild XP a member earns per point of rep
+        uint32 repWeeklyCap = 4375;     // 0 = no cap
+
+        // Guild vendors
+        bool rewardsEnabled = true;
     };
 
     Config const& GetConfig();
@@ -155,6 +177,15 @@ namespace GuildLevels
     };
     MemberStats GetMemberStats(ObjectGuid::LowType guid, uint32 guildId);
     std::vector<std::pair<ObjectGuid::LowType, MemberStats>> GetGuildMembers(uint32 guildId);
+
+    // Guild reputation bookkeeping (GuildLevelsMgr.cpp; the standing itself is the core's).
+    // A member's rep belongs to the guild they earned it in; this is that guild (0: none yet).
+    uint32 GetRepGuild(ObjectGuid::LowType guid);
+    void SetRepGuild(ObjectGuid::LowType guid, uint32 guildId);
+    // Turns guild XP into rep: keeps the remainder, applies the weekly cap, returns the rep.
+    uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted);
+    uint32 GetWeekRep(ObjectGuid::LowType guid);
+    void ForgetRep(ObjectGuid::LowType guid);
 
     void Load();
     void Save(bool now);
@@ -209,6 +240,44 @@ namespace GuildLevels
     std::vector<NewsItem> GetNews(uint32 guildId);     // newest first
     void ForgetGuildNews(uint32 guildId);
     void LoadNews();
+
+    // --- guild reputation (GuildLevelsRep.cpp). Map thread of the player. ---
+
+    // Rep for guild XP the player earned themself (quests, a boss killed in a guild group).
+    void GainGuildRep(Player* player, uint64 guildXp);
+    // Resets the rep when the player is now in a different guild than the one it was earned in,
+    // and moves it to Inactive while they're in none.
+    void RefreshGuildRep(Player* player);
+
+    struct RepInfo
+    {
+        int32 standing = 0;     // the reputation value (0 = Neutral 0)
+        uint8 rank = 3;         // ReputationRank: 3 Neutral .. 7 Exalted
+        uint32 weekRep = 0;
+    };
+    RepInfo GetRepInfo(Player* player);
+    uint8 GetRepRank(Player const* player);
+
+    // --- guild vendors (GuildLevelsRewards.cpp) ---
+
+    enum RewardCategory : uint8
+    {
+        REWARD_TABARD = 1, REWARD_HEIRLOOM, REWARD_PET, REWARD_MOUNT, REWARD_CONSUMABLE,
+    };
+
+    struct Reward
+    {
+        uint32 item = 0;
+        uint8 team = 0;         // 0 both, 1 Alliance, 2 Horde
+        uint8 guildLevel = 1;
+        uint8 repRank = 3;      // ReputationRank
+        uint32 price = 0;       // copper, before the vendor's discount
+        uint8 category = 0;
+    };
+
+    void LoadRewards();                         // world thread, startup
+    std::vector<Reward> const& GetRewards();    // read-only after startup
+    std::vector<uint32> const& GetVendorEntries();
 
     // --- addon (GuildLevelsAddon.cpp) ---
 

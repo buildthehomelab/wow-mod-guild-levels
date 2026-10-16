@@ -168,3 +168,46 @@ GuildLevels.News.Enable = 1
 GuildLevels.News.Keep = 100
 GuildLevels.News.ItemQuality = 4
 GuildLevels.News.Bots = 0
+
+########################################
+# Guild reputation
+########################################
+#
+#    GuildLevels.Rep.Enable
+#        Description: Members earn reputation with their guild from the guild XP they bring in
+#                     (quests, and bosses killed in a guild group). It is the faction
+#                     GuildLevels.Rep.Faction, which the client needs in its Faction.dbc
+#                     (tools/build_patch.py). It starts over when a member joins another guild.
+#        Default:     1
+#
+#    GuildLevels.Rep.Faction
+#        Description: The guild reputation's Faction.dbc id.
+#        Default:     1168
+#
+#    GuildLevels.Rep.XPPerRep
+#        Description: Guild XP a member brings in for each point of guild rep (Cataclysm: 360,
+#                     on its far larger guild XP). With the default XP settings a level 60 quest
+#                     or a dungeon boss is about 55 rep, a raid boss about 165.
+#        Default:     36
+#
+#    GuildLevels.Rep.WeeklyCap
+#        Description: Most guild rep a member can earn in a week, Tuesday to Monday
+#                     (Cataclysm 4.2: 4375). 0 = no cap.
+#        Default:     4375
+
+GuildLevels.Rep.Enable = 1
+GuildLevels.Rep.Faction = 1168
+GuildLevels.Rep.XPPerRep = 36
+GuildLevels.Rep.WeeklyCap = 4375
+
+########################################
+# Guild vendors
+########################################
+#
+#    GuildLevels.Rewards.Enable
+#        Description: The guild vendors (one in each capital) sell the rewards in the world table
+#                     mod_guild_levels_reward, each for a guild level, a standing with the guild
+#                     and gold. Off: talking to a vendor opens nothing.
+#        Default:     1
+
+GuildLevels.Rewards.Enable = 1

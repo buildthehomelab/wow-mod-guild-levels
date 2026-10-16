@@ -363,6 +363,8 @@ public:
         data->timer = REFRESH_MS;
         // Every tick also re-checks the auras, which some core paths strip (arena entry, etc.).
         RefreshPerks(player, true);
+        // and the guild rep: a new guild starts it over, no guild puts it away.
+        RefreshGuildRep(player);
     }
 
     void OnPlayerMapChanged(Player* player) override

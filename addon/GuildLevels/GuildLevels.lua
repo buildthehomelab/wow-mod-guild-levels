@@ -2,9 +2,13 @@
 -- and perks, and keeps them for Window.lua to draw.
 --
 -- Wire format, both directions: an addon whisper to yourself, "<COMMAND>:<field>:<field>...".
---   to the server    HELLO, STATE, ROSTER, NEWS
+--   to the server    HELLO, STATE, ROSTER, NEWS, REWARDS
 --   from the server  S:<level>:<xp>:<needed>:<today>:<daily cap>:<total>:<my week>:<my total>
 --                      :<guild Cash Flow this week>:<guild Cash Flow total>:<my Cash Flow this week>
+--                      :<my guild rep>:<my rep rank, 3 Neutral..7 Exalted>:<my rep this week>:<weekly cap>
+--                    V:<creature entry>,...   the guild vendors
+--                    W:<item>,<team>,<guild level>,<rep rank>,<price>,<category>;... ... WEND
+--                      the guild rewards; team 0 both, 1 Alliance, 2 Horde; price in copper
 --                    UP:<level>:<perk name>   (the guild just levelled up)
 --                    K:<level>:<name>:<description> ... KEND
 --                    R:<name>,<week>,<total>;... ... REND
@@ -29,12 +33,16 @@ GuildLevels = {
     perks = {},         -- in level order: { level, name, description }
     roster = {},        -- { name, week, total }, most this week first
     news = {},          -- { type, time, who, value, extra, text, text2 }, newest first
+    rep = 0, repRank = 3, repWeek = 0, repCap = 0,  -- my guild reputation
+    rewards = {},       -- in vendor order: { item, team, level, rank, price, category }
+    vendors = {},       -- [creature entry] = true for the guild vendors
+    REWARD_CATEGORIES = { "Tabards", "Heirlooms", "Companions", "Mounts", "Consumables" },
     newsClockOffset = 0,    -- server time minus time(), for "3 hours ago"
     NEWS_GUILD_LEVEL = 0, NEWS_ENCOUNTER = 1, NEWS_ITEM_LOOTED = 2, NEWS_ITEM_CRAFTED = 3, NEWS_ACHIEVEMENT = 4,
     MAX_LEVEL = MAX_LEVEL,
 }
 local GL = GuildLevels
-local pendingPerks, pendingRoster, pendingNews
+local pendingPerks, pendingRoster, pendingNews, pendingRewards
 
 -- Icons for the perk list, by the level the perk comes with.
 GL.ICONS = {
@@ -75,6 +83,27 @@ local function onMessage(message)
         GL.level, GL.xp, GL.needed, GL.today, GL.cap, GL.total, GL.myWeek, GL.myTotal =
             v[1] or 0, v[2] or 0, v[3] or 0, v[4] or 0, v[5] or 0, v[6] or 0, v[7] or 0, v[8] or 0
         GL.cashWeek, GL.cashTotal, GL.myCashWeek = v[9] or 0, v[10] or 0, v[11] or 0
+        GL.rep, GL.repRank, GL.repWeek, GL.repCap = v[12] or 0, v[13] or 3, v[14] or 0, v[15] or 0
+        GL.Refresh()
+    elseif command == "V" then
+        GL.vendors = {}
+        for entry in rest:gmatch("%d+") do
+            GL.vendors[tonumber(entry)] = true
+        end
+    elseif command == "W" then
+        pendingRewards = pendingRewards or {}
+        for row in rest:gmatch("[^;]+") do
+            local item, team, level, rank, price, category = row:match("^(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)$")
+            if item then
+                pendingRewards[#pendingRewards + 1] = {
+                    item = tonumber(item), team = tonumber(team), level = tonumber(level),
+                    rank = tonumber(rank), price = tonumber(price), category = tonumber(category),
+                }
+            end
+        end
+    elseif command == "WEND" then
+        GL.rewards = pendingRewards or {}
+        pendingRewards = nil
         GL.Refresh()
     elseif command == "UP" then
         local level, perk = rest:match("^(%d+):(.*)$")
@@ -134,6 +163,60 @@ function GL.NextPerk()
     end
 end
 
+-- Guild reputation. Ranks are the core's: 0 Hated .. 3 Neutral .. 7 Exalted.
+GL.RANK_FLOOR = { [0] = -42000, -6000, -3000, 0, 3000, 9000, 21000, 42000 }
+GL.RANK_TOP = 42999
+
+function GL.RankName(rank)
+    return _G["FACTION_STANDING_LABEL" .. ((rank or 3) + 1)] or "?"
+end
+
+-- Progress within my current rank: value, size of the rank.
+function GL.RankProgress()
+    local floor = GL.RANK_FLOOR[GL.repRank] or 0
+    local top = GL.RANK_FLOOR[GL.repRank + 1] or (GL.RANK_TOP + 1)
+    return GL.rep - floor, top - floor
+end
+
+-- Is this reward for my faction?
+function GL.RewardForMe(reward)
+    if reward.team == 0 then
+        return true
+    end
+    return (reward.team == 1) == (UnitFactionGroup("player") == "Alliance")
+end
+
+-- What's missing to buy it: guild, guild level, rep. Both are nil once it can be bought.
+function GL.RewardLocks(reward)
+    local guildLow = GL.level < reward.level
+    local repLow = GL.repRank < reward.rank
+    if GL.level == 0 then
+        guildLow = true
+    end
+    return guildLow and true or nil, repLow and true or nil
+end
+
+function GL.RewardFor(item)
+    for _, reward in ipairs(GL.rewards) do
+        if reward.item == item then
+            return reward
+        end
+    end
+end
+
+-- The creature entry of a 3.3.5 creature GUID ("0xF130" .. 6 hex entry .. 6 hex counter).
+function GL.GuidEntry(guid)
+    if not guid or guid:sub(3, 6) ~= "F130" then
+        return nil
+    end
+    return tonumber(guid:sub(7, 12), 16)
+end
+
+function GL.AtGuildVendor()
+    local entry = GL.GuidEntry(UnitGUID("npc"))
+    return entry and GL.vendors[entry] or false
+end
+
 -- Copper as "12g 34s 56c", in coin colours, leaving out the empty leading parts.
 function GL.Money(copper)
     copper = math.floor(copper or 0)
@@ -160,7 +243,26 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_GUILD_UPDATE")
 frame:RegisterEvent("CHAT_MSG_ADDON")
+frame:RegisterEvent("UPDATE_FACTION")
+-- Rep changes come in bursts (a boss gives everyone rep at once): ask for the state once, a moment
+-- after the last one, and only while something shows it.
+local stateDelay
+frame:SetScript("OnUpdate", function(self, elapsed)
+    if stateDelay then
+        stateDelay = stateDelay - elapsed
+        if stateDelay <= 0 then
+            stateDelay = nil
+            GL.Send("STATE")
+        end
+    end
+end)
 frame:SetScript("OnEvent", function(self, event, prefix, message, channel, sender)
+    if event == "UPDATE_FACTION" then
+        if GL.connected and ((GuildLevelsFrame and GuildLevelsFrame:IsShown()) or (MerchantFrame and MerchantFrame:IsShown())) then
+            stateDelay = 1.5
+        end
+        return
+    end
     if event == "CHAT_MSG_ADDON" then
         if prefix == PREFIX and channel == "WHISPER" and sender == UnitName("player") then
             onMessage(message)
