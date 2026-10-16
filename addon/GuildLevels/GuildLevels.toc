@@ -2,7 +2,7 @@
 ## Title: GuildLevels
 ## Notes: Your guild's level, guild XP and guild perks. Needs mod-guild-levels on the realm.
 ## Author: buildthehomelab
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariablesPerCharacter: GuildLevelsDB
 
 GuildLevels.lua

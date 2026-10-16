@@ -421,6 +421,7 @@ namespace GuildLevels
             dirtyGuilds.clear();
             dirtyMembers.clear();
         }
+        SaveNews(trans, any);
 
         if (!any)
             return;
@@ -445,6 +446,7 @@ namespace GuildLevels
                 continue;
 
             LOG_INFO("module", "mod-guild-levels: guild {} ({}) reached level {}", guild->GetName(), guildId, level);
+            AddNews(guildId, NEWS_GUILD_LEVEL, 0, level);
             if (!config.announce)
                 continue;
 

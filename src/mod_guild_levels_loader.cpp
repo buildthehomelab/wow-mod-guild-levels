@@ -12,6 +12,7 @@ void AddGuildLevelsXPScripts();
 void AddGuildLevelsPerksScripts();
 void AddGuildLevelsSpellScripts();
 void AddGuildLevelsAddonScripts();
+void AddGuildLevelsNewsScripts();
 
 void Addmod_guild_levelsScripts()
 {
@@ -19,4 +20,5 @@ void Addmod_guild_levelsScripts()
     AddGuildLevelsXPScripts();
     AddGuildLevelsPerksScripts();
     AddGuildLevelsSpellScripts();
+    AddGuildLevelsNewsScripts();
 }
