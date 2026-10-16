@@ -4,7 +4,8 @@
  * Kept per guild, newest first, at most GuildLevels.News.Keep items: the guild reaching a level,
  * dungeon and raid bosses killed by a guild group, epic (GuildLevels.News.ItemQuality) items a
  * member looted, won in a roll or crafted, and achievements a member earned. Bots' loot and
- * achievements only count with GuildLevels.News.Bots.
+ * achievements only count with GuildLevels.News.Bots. Items handed out by a master looter don't
+ * make the news: the core stores them without any script hook.
  *
  * Items arrive from map threads, so the feed sits behind its own mutex. New items are written
  * with the rest of the module's state every save interval, and each guild's older rows are
@@ -49,17 +50,25 @@ namespace GuildLevels
         std::unordered_set<uint32> pruneGuilds;
         std::unordered_set<uint32> deletedFeeds;
 
-        bool Counts(Player const* player)
+        // Hooks run on map threads while .reload config may rewrite the settings.
+        NewsConfig Settings()
         {
-            return newsConfig.enabled && player && player->GetGuildId() && (newsConfig.bots || IsRealPlayer(player));
+            std::lock_guard<std::mutex> guard(newsLock);
+            return newsConfig;
+        }
+
+        bool Counts(Player const* player, NewsConfig const& settings)
+        {
+            return settings.enabled && player && player->GetGuildId() && (settings.bots || IsRealPlayer(player));
         }
 
         void AddItemNews(Player* player, Item const* item, NewsType type)
         {
-            if (!Counts(player) || !item)
+            NewsConfig settings = Settings();
+            if (!Counts(player, settings) || !item)
                 return;
             ItemTemplate const* proto = item->GetTemplate();
-            if (!proto || proto->Quality < newsConfig.itemQuality)
+            if (!proto || proto->Quality < settings.itemQuality)
                 return;
             AddNews(player->GetGuildId(), type, player->GetGUID().GetCounter(), proto->ItemId, proto->Quality);
         }
@@ -201,7 +210,7 @@ public:
 
     void OnPlayerAchievementComplete(Player* player, AchievementEntry const* achievement) override
     {
-        if (!Counts(player) || !achievement || (achievement->flags & ACHIEVEMENT_FLAG_COUNTER))
+        if (!Counts(player, Settings()) || !achievement || (achievement->flags & ACHIEVEMENT_FLAG_COUNTER))
             return;
         AddNews(player->GetGuildId(), NEWS_ACHIEVEMENT, player->GetGUID().GetCounter(), achievement->ID, achievement->points);
     }

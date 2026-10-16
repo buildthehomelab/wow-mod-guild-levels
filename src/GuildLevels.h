@@ -157,8 +157,8 @@ namespace GuildLevels
     std::vector<std::pair<ObjectGuid::LowType, MemberStats>> GetGuildMembers(uint32 guildId);
 
     void Load();
-    void Save(bool now);
-    void SaveNews(CharacterDatabaseTransaction trans, bool& any);   // GuildLevelsNews.cpp, from Save            // writes what changed; now = synchronous (shutdown)
+    void Save(bool now);            // writes what changed; now = synchronous (shutdown)
+    void SaveNews(CharacterDatabaseTransaction trans, bool& any);   // GuildLevelsNews.cpp, from Save
     void ProcessEvents();           // world thread: level-up announcements
 
     // --- perks (GuildLevelsPerks.cpp) ---
