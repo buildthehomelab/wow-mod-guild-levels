@@ -1,0 +1,144 @@
+[worldserver]
+
+########################################
+# mod-guild-levels
+########################################
+#
+#    GuildLevels.Enable
+#        Description: Guild levels, guild XP and the guild perks. Off: no XP, no perks, and the
+#                     perk spells are unlearned the next time a player's perks are checked.
+#        Default:     1
+#
+#    GuildLevels.Announce
+#        Description: Tell the guild when it reaches a new level, and which perk it got.
+#        Default:     1
+
+GuildLevels.Enable = 1
+GuildLevels.Announce = 1
+
+#
+#    GuildLevels.XP.CurveScale
+#        Description: Guild XP needed per level is Cataclysm's (16.58 million for level 2 up to
+#                     54.73 million for level 25, 855.69 million in all) times this. The default
+#                     0.0125 makes level 25 about 10.7 million: about three months for three to
+#                     five active players.
+#        Default:     0.0125
+#
+#    GuildLevels.XP.QuestShare
+#        Description: Share of a quest's XP that also goes to the guild (Cataclysm: 0.25). Counts
+#                     at the level cap too, where the quest pays money instead.
+#        Default:     0.25
+#
+#    GuildLevels.XP.BossDungeon
+#    GuildLevels.XP.BossRaid
+#        Description: Guild XP for a dungeon or raid boss killed by a guild group. A 5-player
+#                     dungeon pays 50% with 3 guild members, 100% with 4 and 125% with 5. Bosses
+#                     gray to the highest-level guild member pay nothing, and an encounter with
+#                     several bosses (a council) pays once.
+#        Default:     2000, 6000
+#
+#    GuildLevels.XP.HeroicBonus
+#        Description: Multiplier for heroic dungeons and raids.
+#        Default:     1.5
+#
+#    GuildLevels.XP.RaidGuildMembers
+#        Description: Guild members a raid needs to count as a guild group (at most 80% of the
+#                     raid's size, so 8 in a 10-player raid). Cataclysm used 10 for old raids.
+#        Default:     10
+#
+#    GuildLevels.XP.DailyCap
+#        Description: Most guild XP a guild can earn in a day (server time). 0 = no cap.
+#        Default:     150000
+#
+#    GuildLevels.XP.DailyCapUntilLevel
+#        Description: The daily cap stops applying once the guild reaches this level
+#                     (Cataclysm 4.2: 20).
+#        Default:     20
+#
+#    GuildLevels.XP.BotGuildsEarn
+#        Description: Only real players earn guild XP; bots in the guild only count toward the
+#                     size of a guild group. 1 lets bots earn XP too, so playerbots' own guilds
+#                     level up.
+#        Default:     0
+
+GuildLevels.XP.CurveScale = 0.0125
+GuildLevels.XP.QuestShare = 0.25
+GuildLevels.XP.BossDungeon = 2000
+GuildLevels.XP.BossRaid = 6000
+GuildLevels.XP.HeroicBonus = 1.5
+GuildLevels.XP.RaidGuildMembers = 10
+GuildLevels.XP.DailyCap = 150000
+GuildLevels.XP.DailyCapUntilLevel = 20
+GuildLevels.XP.BotGuildsEarn = 0
+
+#
+#    Perks. Percentages unless the name says otherwise; the guild level each one comes with is
+#    in brackets.
+#
+#    GuildLevels.Perk.FastTrack1 / FastTrack2 (2 / 6)
+#        Description: More XP from kills and quests.                         Default: 5 / 10
+#    GuildLevels.Perk.MountUp (3)
+#        Description: Mounted and flying speed. Not in battlegrounds/arenas.  Default: 10
+#    GuildLevels.Perk.MrPopularity1 / MrPopularity2 (4 / 12)
+#        Description: More reputation from kills and quests.                 Default: 5 / 10
+#    GuildLevels.Perk.CashFlow1 / CashFlow2 (5 / 16)
+#        Description: Extra share of looted money paid into the guild bank.  Default: 5 / 10
+#    GuildLevels.Perk.Reinforce1 / Reinforce2 (7 / 9)
+#        Description: Less durability lost by dying.                         Default: 10 / 20
+#    GuildLevels.Perk.RideLikeTheWind (8)
+#        Description: Faster flight paths. Needs the core's taxi speed hook. Default: 25
+#    GuildLevels.Perk.ChugALug1 / ChugALug2 (10 / 22)
+#        Description: Well Fed, flask and elixir buffs last longer.          Default: 50 / 100
+#    GuildLevels.Perk.HonorableMention1 / HonorableMention2 (13 / 19)
+#        Description: More honor from honorable kills.                       Default: 5 / 10
+#    GuildLevels.Perk.WorkingOvertime (14)
+#        Description: Higher chance of a crafting skill-up: a second roll
+#                     at this percent of the recipe's own chance.            Default: 10
+#    GuildLevels.Perk.QuickAndDeadSpeed / QuickAndDeadRes (15)
+#        Description: Ghost run speed, and health and mana when a guild
+#                     member of your group resurrects you.                   Default: 100 / 50
+#    GuildLevels.Perk.ForGreatJusticeChance (18)
+#        Description: Chance of one more boss coin per boss award. Paid by
+#                     mod-boss-coins with BossCoins.BossKills.BonusAura =
+#                     90455. 0 = off.                                         Default: 10
+#    GuildLevels.Perk.HappyHourChance (20)
+#        Description: Chance of an extra flask or elixir when you make one.  Default: 50
+#    GuildLevels.Perk.BountifulBagsChance (23)
+#        Description: Chance of an extra material from Mining, Herbalism,
+#                     Skinning and Disenchanting.                            Default: 15
+#    GuildLevels.Perk.Bartering (24)
+#        Description: Lower prices and repairs at vendors.                   Default: 10
+#    GuildLevels.Perk.MassResurrectionHealth / MassResurrectionMinutes (25)
+#        Description: Health and mana Mass Resurrection gives back, and how
+#                     often one player can be raised by it. The spell's
+#                     tooltip in the client patch says 35% and 10 min.      Default: 35 / 10
+#
+#    GuildLevels.Perk.DoctorIsIn (17)
+#        Description: Healing potions and healthstones heal more.            Default: 50
+#
+#    Mobile Banking (11) and Have Group, Will Travel (21) have no settings.
+
+GuildLevels.Perk.FastTrack1 = 5
+GuildLevels.Perk.FastTrack2 = 10
+GuildLevels.Perk.MountUp = 10
+GuildLevels.Perk.MrPopularity1 = 5
+GuildLevels.Perk.MrPopularity2 = 10
+GuildLevels.Perk.CashFlow1 = 5
+GuildLevels.Perk.CashFlow2 = 10
+GuildLevels.Perk.Reinforce1 = 10
+GuildLevels.Perk.Reinforce2 = 20
+GuildLevels.Perk.RideLikeTheWind = 25
+GuildLevels.Perk.ChugALug1 = 50
+GuildLevels.Perk.ChugALug2 = 100
+GuildLevels.Perk.HonorableMention1 = 5
+GuildLevels.Perk.HonorableMention2 = 10
+GuildLevels.Perk.WorkingOvertime = 10
+GuildLevels.Perk.QuickAndDeadSpeed = 100
+GuildLevels.Perk.QuickAndDeadRes = 50
+GuildLevels.Perk.DoctorIsIn = 50
+GuildLevels.Perk.ForGreatJusticeChance = 10
+GuildLevels.Perk.HappyHourChance = 50
+GuildLevels.Perk.BountifulBagsChance = 15
+GuildLevels.Perk.Bartering = 10
+GuildLevels.Perk.MassResurrectionHealth = 35
+GuildLevels.Perk.MassResurrectionMinutes = 10
