@@ -12,7 +12,7 @@
  *                     N:<type>,<time>,<member>,<value>,<extra>,<text>,<text2>;... ... NEND:<server time>
  *                       newest first; type, value and extra as NewsType in GuildLevels.h. text is the
  *                       level's perk, the boss, the item or the achievement by name; text2 the
- *                       boss's instance. Texts lose any , ; or | they had.
+ *                       boss's instance and its difficulty. Texts lose any , ; or | they had.
  *
  * Released under the MIT License.
  */
@@ -120,6 +120,16 @@ namespace
         SendRows(player, "R", rows, "REND");
     }
 
+    // " (Heroic)", " (25)", " (10 Heroic)"... after the instance name; nothing for a normal dungeon.
+    std::string DifficultyLabel(MapEntry const* map, uint32 difficulty)
+    {
+        if (!map->IsRaid())
+            return difficulty ? " (Heroic)" : "";
+        bool heroic = difficulty >= RAID_DIFFICULTY_10MAN_HEROIC;
+        bool twentyFive = difficulty == RAID_DIFFICULTY_25MAN_NORMAL || difficulty == RAID_DIFFICULTY_25MAN_HEROIC;
+        return Acore::StringFormat(" ({}{})", twentyFive ? 25 : 10, heroic ? " Heroic" : "");
+    }
+
     std::string Clean(std::string text)
     {
         for (char& c : text)
@@ -149,7 +159,7 @@ namespace
                     {
                         text = encounter->encounterName[locale];
                         if (MapEntry const* map = sMapStore.LookupEntry(encounter->mapId))
-                            text2 = map->name[locale];
+                            text2 = map->name[locale] + DifficultyLabel(map, n.extra);
                     }
                     break;
                 case NEWS_ITEM_LOOTED:

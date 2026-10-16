@@ -43,6 +43,8 @@ namespace GuildLevels
             bool bots = false;
         } newsConfig;
 
+        constexpr uint32 REPEAT_WINDOW = HOUR;
+
         std::mutex newsLock;
         uint32 nextId = 1;
         std::unordered_map<uint32, std::deque<NewsItem>> feeds;    // newest first
@@ -93,8 +95,23 @@ namespace GuildLevels
         if (!newsConfig.enabled)
             return;
 
-        NewsItem news{ nextId++, uint8(type), uint32(GameTime::GetGameTime().count()), guid, value, extra };
+        uint32 now = uint32(GameTime::GetGameTime().count());
         std::deque<NewsItem>& feed = feeds[guildId];
+
+        // The same member looting or crafting the same item again within the hour is one item:
+        // a jewelcrafter cutting forty epic gems would otherwise push everything else out.
+        if (type == NEWS_ITEM_LOOTED || type == NEWS_ITEM_CRAFTED)
+        {
+            for (NewsItem const& old : feed)
+            {
+                if (old.time + REPEAT_WINDOW < now)
+                    break;
+                if (old.type == type && old.guid == guid && old.value == value)
+                    return;
+            }
+        }
+
+        NewsItem news{ nextId++, uint8(type), now, guid, value, extra };
         feed.push_front(news);
         while (feed.size() > newsConfig.keep)
             feed.pop_back();
