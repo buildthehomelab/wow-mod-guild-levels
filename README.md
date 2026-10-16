@@ -95,7 +95,8 @@ them (left the guild, `.guildlevel set` lower). The perks are checked every two 
 Like Cataclysm's Guild News, the module keeps a feed per guild, newest first: the guild reaching a
 level, dungeon and raid bosses killed by a guild group, epic items members looted, won in a roll
 or crafted, and achievements members earned. Bots' loot and achievements stay out unless
-`GuildLevels.News.Bots` is on. It keeps the newest `GuildLevels.News.Keep` items (100) and deletes
+`GuildLevels.News.Bots` is on. Items a master looter hands out don't show: the core gives them
+out without a script hook. It keeps the newest `GuildLevels.News.Keep` items (100) and deletes
 older ones. The feed goes to addons with the `NEWS` request (see `src/GuildLevelsAddon.cpp`); the
 GuildLevels addon keeps it in `GuildLevels.news` for a guild window to show.
 
