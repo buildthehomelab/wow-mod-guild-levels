@@ -11,6 +11,9 @@
  *   an encounter of the instance (DungeonEncounter.dbc), paid when the core credits it, once
  *   per instance: a council of several creatures pays once.
  *
+ * Each real player also earns guild rep (GuildLevelsRep.cpp) from the guild XP they bring in:
+ * their quest's share, and the whole of a boss's guild XP for everyone in the guild group.
+ *
  * Only real players earn guild XP. Bots that are members of the guild count toward the size of
  * a guild group, so one player with four guild bots is a full guild group, but a guild with no
  * real player present never earns anything (unless GuildLevels.XP.BotGuildsEarn).
@@ -58,6 +61,7 @@ namespace
         uint32 members = 0;                             // guild members on the boss's map, bots too
         uint8 highestLevel = 0;
         std::vector<ObjectGuid::LowType> realPlayers;   // who gets the credit
+        std::vector<Player*> realPlayerObjects;         // and the rep: same map, so this thread
     };
 
     // Guild XP percentage for a guild group of `members` guild members out of `groupSize`.
@@ -101,7 +105,10 @@ namespace
             ++p.members;
             p.highestLevel = std::max(p.highestLevel, member->GetLevel());
             if (IsRealPlayer(member))
+            {
                 p.realPlayers.push_back(member->GetGUID().GetCounter());
+                p.realPlayerObjects.push_back(member);
+            }
         }
 
         auto best = std::max_element(presence.begin(), presence.end(),
@@ -127,6 +134,8 @@ namespace
         xp = xp * percent / 100.0;
 
         AddXP(best->first, uint64(xp), p.realPlayers);
+        for (Player* member : p.realPlayerObjects)
+            GainGuildRep(member, uint64(xp));
     }
 }
 
@@ -160,6 +169,7 @@ public:
 
         uint64 xp = uint64(double(xpValue) * GetConfig().questShare);
         AddXP(player->GetGuildId(), xp, { player->GetGUID().GetCounter() });
+        GainGuildRep(player, xp);
     }
 };
 

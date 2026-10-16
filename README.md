@@ -3,7 +3,9 @@
 Cataclysm-style guild levels for [AzerothCore](https://www.azerothcore.org) (WotLK 3.3.5a). A guild
 earns guild XP from its members' quests and from dungeon and raid bosses killed as a guild group,
 and climbs from level 1 to 25. Every level from 2 to 25 unlocks a guild perk, in Cataclysm's order.
-The GuildLevels addon shows the guild's level, XP, perks and each member's contribution.
+Members also earn reputation with their guild, which buys guild rewards (heirlooms, tabards,
+mounts, pets, battle standards and cauldrons) from a guild vendor in each capital. The GuildLevels
+addon shows the guild's level, XP, perks, rewards and each member's contribution.
 
 ## Guild XP
 
@@ -99,6 +101,59 @@ out without a script hook. It keeps the newest `GuildLevels.News.Keep` items (10
 older ones. The feed goes to addons with the `NEWS` request (see `src/GuildLevelsAddon.cpp`); the
 GuildLevels addon keeps it in `GuildLevels.news` for a guild window to show.
 
+## Guild reputation
+
+As in Cataclysm, each member earns reputation with their guild from the guild XP they bring in
+themself: one point per 36 guild XP (`GuildLevels.Rep.XPPerRep`; Cataclysm's 360 is for its far
+larger guild XP). A level 60 quest or a dungeon boss killed in a guild group is about 55 rep, a raid
+boss about 165; everyone in the guild group gets the boss's rep. It counts what the member earned,
+so it still comes once the guild is level 25 or has reached its daily XP cap. A member can earn
+4,375 a week (`GuildLevels.Rep.WeeklyCap`, Cataclysm 4.2), Tuesday to Monday. Only real players
+earn it. The realm's `Rate.Reputation.Gain` doesn't apply to it, so the cap is what a member gets.
+
+It is a real faction, **Your Guild** (Faction.dbc 1168) under a **Guild** header (1169), so it is in
+the reputation pane, can be watched as a bar and gives the usual "Reputation with Your Guild
+increased" lines. The rep belongs to the guild it was earned in: joining another guild starts it
+over at Neutral. While a member is in no guild it waits under Inactive, back where it was if they
+rejoin the same guild. The client needs the two factions (see [Client patch](#client-patch)).
+
+## Guild vendors and rewards
+
+A guild vendor stands beside the tabard vendor in each capital: Mirabel Ashford (Stormwind), Dorn
+Ironstave (Ironforge), Ilyara Moonwhisper (Darnassus), Vaaros (the Exodar), Grezka (Orgrimmar),
+Edwin Harrow (the Undercity), Nahla Windmane (Thunder Bluff) and Caelis Dawnmere (Silvermoon City).
+Each sells every reward of its faction. A reward needs a guild level, your standing with your
+guild and gold; one you can't buy yet shows as sold out (dark red), and trying says what's
+missing. With the addon, its tooltip shows both requirements in red or green.
+
+| Reward | Guild level | Standing | Price |
+|---|---|---|---|
+| Renowned Guild Tabard: your guild's emblem; teleports you to Stormwind or Orgrimmar (8 h) | 3 | Honored | 50g |
+| Illustrious Guild Tabard: the same, every 2 h | 12 | Exalted | 150g |
+| Heirloom shoulders (all 13 of 3.3.5) | 5 | Friendly | 100g |
+| Heirloom chests (6) | 10 | Honored | 150g |
+| Heirloom weapons (14) | 15 | Honored | 200g |
+| Heirloom trinkets: Swift Hand of Justice, Discerning Eye of the Beast, Inherited Insignia of your faction | 18 | Revered | 250g |
+| Armadillo Pup (companion) | 8 | Honored | 150g |
+| Dark Phoenix Hatchling (companion) | 16 | Revered | 300g |
+| Lil' Tarecgosa (companion) | 22 | Exalted | 500g |
+| Golden King (Alliance) / Kor'kron Annihilator (Horde) (mount) | 20 | Exalted | 1,000g |
+| Dark Phoenix (mount; flies where flying mounts can) | 25 | Exalted | 2,000g |
+| Guild Battle Standard: planted for 15 min, +5% maximum health for guild members within 45 yards | 4 | Friendly | 10g |
+| Greater Guild Battle Standard: +10% | 13 | Honored | 25g |
+| Grand Guild Battle Standard: +15% (only the highest standard counts) | 21 | Revered | 50g |
+| Cauldron of Battle: 10 min, 10 Flasks of Battle for your party or raid | 10 | Honored | 50g |
+| Big Cauldron of Battle: 25 flasks | 19 | Revered | 100g |
+
+Flask of Battle: +15 to all stats for an hour, through death, one per member from a cauldron; it is a flask (a Battle and a
+Guardian elixir), so Chug-A-Lug makes it last longer. Prices are before the vendor's usual
+reputation discount (and Bartering). The list is the world table `mod_guild_levels_reward`
+(item, faction, guild level, standing, price in copper, vendor order); rows for items the server
+doesn't have are left out at startup. The companions and mounts are items of
+[mod-retail-pets](https://github.com/buildthehomelab/wow-mod-retail-pets) (90216-90221) wearing
+[mod-retail-library](https://github.com/buildthehomelab/wow-mod-retail-library) looks; without
+those modules the vendors sell the rest.
+
 ## Install
 
 ```bash
@@ -112,26 +167,31 @@ the worldserver; it applies `data/sql/db-world` and `data/sql/db-characters` its
 
 ### Client patch
 
-Mobile Banking, Have Group, Will Travel and Mass Resurrection are new spells (90452-90454), so the
-client needs them in its `Spell.dbc`. Add them to the patch that carries your realm's Spell.dbc:
+Mobile Banking, Have Group, Will Travel and Mass Resurrection are new spells (90452-90454), and the
+rewards add spells (90456-90466), items (90456-90460, 90464-90465) and the guild factions (1168,
+1169), so the client needs them in its `Spell.dbc`, `Item.dbc` and `Faction.dbc`. Add them to the
+patch that carries your realm's Spell.dbc and Item.dbc:
 
 ```bash
-python3 tools/build_patch.py --patch patch-W.MPQ --out patch-W-new.MPQ \
+python3 tools/build_patch.py --patch patch-W.MPQ --client /path/to/client --out patch-W-new.MPQ \
     --sql data/sql/db-world/mod_guild_levels_spells.sql
 ```
 
-The tool copies every other file of the patch unchanged, and writes the server's rows from the
-same Spell.dbc rows (`--sql`), so client and server agree. It needs Python 3 and
+The tool copies every other file of the patch unchanged; when the patch has no Faction.dbc yet it
+starts from the client's own (`--client`, its newest enUS locale patch). It writes the server's
+rows from the same rows (`--sql`), so client and server agree. It needs Python 3 and
 [StormLib](https://github.com/ladislav-zezula/StormLib). Without the patch the spells don't show in
-the spellbook. The other perks need nothing on the client.
+the spellbook, the reward items show a question mark and the reputation pane has no Guild. Build
+mod-retail-pets' rows into the patch first if you use it: both tools add to the same file.
 
 ### The addon
 
 `addon/GuildLevels` goes in `Interface/AddOns/GuildLevels`. It adds a **Guild Level** button to the
 guild tab of the social window, and `/glevel` opens the window: the guild's level and XP, today's
 XP against the daily cap, Cash Flow paid into the bank this week (the guild's and yours), the
-perks (the guild's in colour, the rest with the level they come at), and each member's guild XP
-this week and in total. When the guild levels up, a banner shows the new level and its perk,
+your guild reputation and this week's rep against the cap, the perks (the guild's in colour, the
+rest with the level they come at), the rewards with what each needs, and each member's guild XP
+this week and in total. At a guild vendor, a reward's tooltip shows its guild level and standing. When the guild levels up, a banner shows the new level and its perk,
 with the level-up sound; clicking it opens the window. `sql/portalkeeper_addon.sql` adds it to
 [Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)'s addon list.
 
@@ -169,9 +229,14 @@ on the world database and `mod_guild_levels_uninstall_characters.sql` on the cha
 
 | What | IDs |
 |---|---|
-| spells | 90450 Mount Up, 90451 The Quick and the Dead, 90455 For Great Justice (server only); 90452 Mobile Banking, 90453 Have Group, Will Travel, 90454 Mass Resurrection |
-| gameobject | 9503400 Guild Chest (a guild bank) |
-| characters tables | `mod_guild_levels`, `mod_guild_levels_member`, `mod_guild_levels_news` |
+| spells | 90450 Mount Up, 90451 The Quick and the Dead, 90455 For Great Justice (server only); 90452 Mobile Banking, 90453 Have Group, Will Travel, 90454 Mass Resurrection; 90456-90457 Guild Teleport (tabards), 90458-90460 Guild Battle Standard, 90461-90463 its auras, 90464-90465 the cauldrons, 90466 Flask of Battle |
+| items | 90456 Renowned and 90457 Illustrious Guild Tabard, 90458-90460 the battle standards, 90464-90465 the cauldrons |
+| factions | 1168 Your Guild (reputation index 105), 1169 Guild (the header, index 106) |
+| creatures | 9503401-9503408 the guild vendors (also their spawn guids), 9503410-9503412 the battle standards |
+| gameobjects | 9503400 Guild Chest (a guild bank), 9503401-9503402 the cauldrons |
+| spell group | 9503410 (the battle standards' auras: only the highest counts) |
+| world table | `mod_guild_levels_reward` |
+| characters tables | `mod_guild_levels`, `mod_guild_levels_member`, `mod_guild_levels_news`, `mod_guild_levels_rep` |
 
 ## License
 

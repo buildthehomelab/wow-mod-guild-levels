@@ -1,8 +1,8 @@
 /*
  * mod-guild-levels: guild XP, levels and their storage.
  *
- * Guild XP arrives from map threads (quests, boss kills), so all of the state below sits behind
- * one mutex and the hooks only ever hold it briefly. Nothing is written to the database from a
+ * Guild XP and guild rep arrive from map threads (quests, boss kills), so all of the state below
+ * sits behind one mutex and the hooks only ever hold it briefly. Nothing is written to the database from a
  * hook: changed guilds and members are marked dirty and saved together every SaveInterval
  * seconds (and on shutdown). Level-ups are queued and announced from the world thread, where
  * the guild's member list may be read.
@@ -47,9 +47,22 @@ namespace GuildLevels
             uint64 weekCash = 0;
         };
 
+        // A member's guild rep bookkeeping. The standing itself is the core's (character_reputation);
+        // this is which guild it belongs to and this week's rep for the weekly cap.
+        struct RepRow
+        {
+            uint32 guildId = 0;
+            uint32 week = 0;
+            uint32 weekRep = 0;
+            uint64 remainder = 0;   // guild XP not yet worth a point of rep; not saved
+        };
+
         std::mutex lock;
         std::unordered_map<uint32, GuildState> guilds;
         std::unordered_map<ObjectGuid::LowType, MemberRow> members;
+        std::unordered_map<ObjectGuid::LowType, RepRow> reps;
+        std::unordered_set<ObjectGuid::LowType> dirtyReps;
+        std::unordered_set<ObjectGuid::LowType> deletedReps;
         std::unordered_set<uint32> dirtyGuilds;
         std::unordered_set<ObjectGuid::LowType> dirtyMembers;
         std::unordered_set<uint32> deletedGuilds;
@@ -167,6 +180,12 @@ namespace GuildLevels
         c.bartering = std::min<uint32>(100, pct("GuildLevels.Perk.Bartering", 10));
         c.massResHealth = std::min<uint32>(100, pct("GuildLevels.Perk.MassResurrectionHealth", 35));
         c.massResMinutes = sConfigMgr->GetOption<uint32>("GuildLevels.Perk.MassResurrectionMinutes", 10);
+
+        c.repEnabled = sConfigMgr->GetOption<bool>("GuildLevels.Rep.Enable", true);
+        c.repFaction = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.Faction", 1168);
+        c.repXPPerRep = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("GuildLevels.Rep.XPPerRep", 36));
+        c.repWeeklyCap = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.WeeklyCap", 4375);
+        c.rewardsEnabled = sConfigMgr->GetOption<bool>("GuildLevels.Rewards.Enable", true);
         config = c;
     }
 
@@ -329,11 +348,72 @@ namespace GuildLevels
         return out;
     }
 
+    uint32 GetRepGuild(ObjectGuid::LowType guid)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        auto itr = reps.find(guid);
+        return itr != reps.end() ? itr->second.guildId : 0;
+    }
+
+    void SetRepGuild(ObjectGuid::LowType guid, uint32 guildId)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        RepRow& row = reps[guid];
+        if (row.guildId == guildId)
+            return;
+        row.guildId = guildId;
+        row.remainder = 0;
+        dirtyReps.insert(guid);
+        deletedReps.erase(guid);
+    }
+
+    uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        RepRow& row = reps[guid];
+        uint32 week = ThisWeek();
+        if (row.week != week)
+        {
+            row.week = week;
+            row.weekRep = 0;
+        }
+
+        row.remainder += guildXp;
+        uint64 rep = row.remainder / config.repXPPerRep;
+        row.remainder %= config.repXPPerRep;
+        if (config.repWeeklyCap)
+            rep = std::min<uint64>(rep, config.repWeeklyCap > row.weekRep ? config.repWeeklyCap - row.weekRep : 0);
+        rep = std::min<uint64>(rep, roomToExalted);
+        if (!rep)
+            return 0;
+
+        row.weekRep += uint32(rep);
+        dirtyReps.insert(guid);
+        deletedReps.erase(guid);
+        return uint32(rep);
+    }
+
+    uint32 GetWeekRep(ObjectGuid::LowType guid)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        auto itr = reps.find(guid);
+        return itr != reps.end() && itr->second.week == ThisWeek() ? itr->second.weekRep : 0;
+    }
+
+    void ForgetRep(ObjectGuid::LowType guid)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        reps.erase(guid);
+        dirtyReps.erase(guid);
+        deletedReps.insert(guid);
+    }
+
     void Load()
     {
         std::lock_guard<std::mutex> guard(lock);
         guilds.clear();
         members.clear();
+        reps.clear();
 
         if (QueryResult result = CharacterDatabase.Query("SELECT guildid, level, xp, total_xp, day, day_xp, cash_week, cash_week_money, cash_total FROM mod_guild_levels"))
         {
@@ -375,7 +455,19 @@ namespace GuildLevels
             } while (result->NextRow());
         }
 
-        LOG_INFO("module", "mod-guild-levels: {} guilds, {} members loaded", guilds.size(), members.size());
+        if (QueryResult result = CharacterDatabase.Query("SELECT guid, guildid, week, week_rep FROM mod_guild_levels_rep"))
+        {
+            do
+            {
+                Field* f = result->Fetch();
+                RepRow& row = reps[f[0].Get<uint32>()];
+                row.guildId = f[1].Get<uint32>();
+                row.week = f[2].Get<uint32>();
+                row.weekRep = f[3].Get<uint32>();
+            } while (result->NextRow());
+        }
+
+        LOG_INFO("module", "mod-guild-levels: {} guilds, {} members, {} guild rep rows loaded", guilds.size(), members.size(), reps.size());
     }
 
     void Save(bool now)
@@ -416,10 +508,27 @@ namespace GuildLevels
                     guid, r.guildId, r.week, r.weekXp, r.totalXp, r.weekCash);
                 any = true;
             }
+            for (ObjectGuid::LowType guid : deletedReps)
+            {
+                trans->Append("DELETE FROM mod_guild_levels_rep WHERE guid = {}", guid);
+                any = true;
+            }
+            for (ObjectGuid::LowType guid : dirtyReps)
+            {
+                auto itr = reps.find(guid);
+                if (itr == reps.end())
+                    continue;
+                RepRow const& r = itr->second;
+                trans->Append("REPLACE INTO mod_guild_levels_rep (guid, guildid, week, week_rep) VALUES ({}, {}, {}, {})",
+                    guid, r.guildId, r.week, r.weekRep);
+                any = true;
+            }
             deletedGuilds.clear();
             deletedMembers.clear();
+            deletedReps.clear();
             dirtyGuilds.clear();
             dirtyMembers.clear();
+            dirtyReps.clear();
         }
         SaveNews(trans, any);
 

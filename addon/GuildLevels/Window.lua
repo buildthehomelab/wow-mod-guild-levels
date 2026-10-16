@@ -1,9 +1,10 @@
--- GuildLevels window: the guild's level and XP bar, then two tabs: every perk (the ones the
--- guild has in colour, the rest grayed with the level they come at) and this week's guild XP by
--- member. A "Guild Level" button on the guild tab of the social window opens it, as does /glevel.
+-- GuildLevels window: the guild's level and XP bar, your guild reputation, then three tabs: every
+-- perk (the ones the guild has in colour, the rest grayed with the level they come at), every
+-- guild reward with what it needs, and this week's guild XP by member. A "Guild Level" button on
+-- the guild tab of the social window opens it, as does /glevel.
 
 local GL = GuildLevels
-local WIDTH, HEIGHT = 384, 486
+local WIDTH, HEIGHT = 384, 506
 local ROW_HEIGHT = 46
 local GOLD, GRAY, WHITE = { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }, { 1, 1, 1 }
 
@@ -57,39 +58,47 @@ local detail = window:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 detail:SetPoint("TOP", bar, "BOTTOM", 0, -6)
 detail:SetWidth(WIDTH - 50)
 
+local repLine = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+repLine:SetPoint("TOP", detail, "BOTTOM", 0, -4)
+repLine:SetWidth(WIDTH - 50)
+
 local cash = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-cash:SetPoint("TOP", detail, "BOTTOM", 0, -4)
+cash:SetPoint("TOP", repLine, "BOTTOM", 0, -4)
 cash:SetWidth(WIDTH - 50)
 
 -- Tabs
 local tabs, current = {}, "perks"
 local function makeTab(key, text, x)
     local tab = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-    tab:SetSize(110, 22)
-    tab:SetPoint("TOPLEFT", x, -134)
+    tab:SetSize(106, 22)
+    tab:SetPoint("TOPLEFT", x, -150)
     tab:SetText(text)
     tab:SetScript("OnClick", function()
         current = key
         GuildLevelsDB.tab = key
         if key == "roster" then
             GL.Send("ROSTER")
+        elseif key == "rewards" and not GL.rewards[1] then
+            GL.Send("REWARDS")
         end
         GL.RefreshWindow()
     end)
     tabs[key] = tab
 end
 makeTab("perks", "Perks", 24)
-makeTab("roster", "Contribution", 138)
+makeTab("rewards", "Rewards", 134)
+makeTab("roster", "Contribution", 244)
 
 -- Scrolling list shared by both tabs
 local scroll = CreateFrame("ScrollFrame", "GuildLevelsScroll", window, "UIPanelScrollFrameTemplate")
-scroll:SetPoint("TOPLEFT", 20, -164)
+scroll:SetPoint("TOPLEFT", 20, -180)
 scroll:SetPoint("BOTTOMRIGHT", -40, 18)
 local content = CreateFrame("Frame", nil, scroll)
 content:SetSize(WIDTH - 64, 10)
 scroll:SetScrollChild(content)
 
-local perkRows, rosterRows = {}, {}
+local perkRows, rosterRows, rewardRows = {}, {}, {}
+local REWARD_HEIGHT = 40
 
 local function perkRow(i)
     local row = perkRows[i]
@@ -155,6 +164,133 @@ local function drawPerks()
         perkRows[i]:Hide()
     end
     content:SetHeight(math.max(10, #GL.perks * ROW_HEIGHT))
+end
+
+local function rewardRow(i)
+    local row = rewardRows[i]
+    if row then
+        return row
+    end
+    row = CreateFrame("Frame", nil, content)
+    row:SetSize(WIDTH - 64, REWARD_HEIGHT)
+    row:EnableMouse(true)
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(30, 30)
+    row.icon:SetPoint("TOPLEFT", 2, -4)
+    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 8, 0)
+    row.name:SetWidth(WIDTH - 200)
+    row.name:SetJustifyH("LEFT")
+    row.price = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.price:SetPoint("TOPRIGHT", -4, -4)
+    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.text:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
+    row.header = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.header:SetPoint("LEFT", 4, 0)
+    row:SetScript("OnEnter", function(self)
+        if not self.reward then
+            return
+        end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetHyperlink("item:" .. self.reward.item)
+        GL.AddRewardRequirements(GameTooltip, self.reward)
+    end)
+    row:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    rewardRows[i] = row
+    return row
+end
+
+-- Item names come from the client's item cache; a missing one is asked for and drawn when it
+-- arrives (3.3.5 has no event for that, so the tab looks again a few times).
+local nameQuery = CreateFrame("GameTooltip", "GuildLevelsNameQuery", UIParent, "GameTooltipTemplate")
+local retries, retryTimer = 0, 0
+local retryFrame = CreateFrame("Frame")
+retryFrame:Hide()
+retryFrame:SetScript("OnUpdate", function(self, elapsed)
+    retryTimer = retryTimer + elapsed
+    if retryTimer < 1 then
+        return
+    end
+    retryTimer = 0
+    retries = retries + 1
+    self:Hide()
+    GL.RefreshWindow()
+end)
+
+local function drawRewards()
+    local RED, GREEN = "|cffff2020", "|cff40e040"
+    local count, y, missing = 0, 0, false
+    local lastCategory
+    for _, reward in ipairs(GL.rewards) do
+        if GL.RewardForMe(reward) then
+            if reward.category ~= lastCategory then
+                lastCategory = reward.category
+                count = count + 1
+                local header = rewardRow(count)
+                header.reward = nil
+                header:SetHeight(22)
+                header:SetPoint("TOPLEFT", 0, -y)
+                header.header:SetText(GL.REWARD_CATEGORIES[reward.category] or "Other")
+                header.icon:Hide()
+                header.name:SetText("")
+                header.price:SetText("")
+                header.text:SetText("")
+                header:Show()
+                y = y + 22
+            end
+
+            count = count + 1
+            local row = rewardRow(count)
+            row.reward = reward
+            row:SetHeight(REWARD_HEIGHT)
+            row:SetPoint("TOPLEFT", 0, -y)
+            row.header:SetText("")
+            local name, _, quality = GetItemInfo(reward.item)
+            if not name then
+                missing = true
+                nameQuery:SetOwner(UIParent, "ANCHOR_NONE")
+                nameQuery:SetHyperlink("item:" .. reward.item)
+                name, quality = "Item " .. reward.item, 1
+            end
+            local guildLow, repLow = GL.RewardLocks(reward)
+            local locked = guildLow or repLow
+            row.icon:SetTexture(GetItemIcon(reward.item) or "Interface\\Icons\\INV_Misc_QuestionMark")
+            row.icon:SetDesaturated(locked)
+            row.icon:Show()
+            local r, g, b = GetItemQualityColor(quality or 1)
+            row.name:SetText(name)
+            if locked then
+                row.name:SetTextColor(0.5, 0.5, 0.5)
+            else
+                row.name:SetTextColor(r, g, b)
+            end
+            row.price:SetText(GL.Money(reward.price))
+            row.text:SetText((guildLow and RED or GREEN) .. "Guild level " .. reward.level .. "|r   "
+                .. (repLow and RED or GREEN) .. GL.RankName(reward.rank) .. "|r")
+            row:Show()
+            y = y + REWARD_HEIGHT
+        end
+    end
+    for i = count + 1, #rewardRows do
+        rewardRows[i]:Hide()
+    end
+    content:SetHeight(math.max(10, y))
+    if count == 0 then
+        local row = rewardRow(1)
+        row.reward = nil
+        row:SetPoint("TOPLEFT", 0, 0)
+        row.icon:Hide()
+        row.name:SetText("")
+        row.price:SetText("")
+        row.text:SetText("")
+        row.header:SetText(GL.connected and "No guild rewards on this realm." or "Waiting for the server...")
+        row:Show()
+    end
+    if missing and retries < 10 then
+        retryFrame:Show()
+    end
 end
 
 local function drawRoster()
@@ -223,6 +359,20 @@ function GL.RefreshWindow()
     end
     detail:SetText(table.concat(parts, "   "))
 
+    if GL.level > 0 then
+        local into, size = GL.RankProgress()
+        local text = "Guild reputation: " .. GL.RankName(GL.repRank)
+        if GL.repRank < 7 then
+            text = text .. " " .. GL.Number(into) .. " / " .. GL.Number(size)
+        end
+        if GL.repCap > 0 then
+            text = text .. "   This week: " .. GL.Number(GL.repWeek) .. " / " .. GL.Number(GL.repCap)
+        end
+        repLine:SetText(text)
+    else
+        repLine:SetText("")
+    end
+
     -- Cash Flow (guild level 5) pays into the bank without a word; this is where it shows.
     if GL.level >= 5 then
         cash:SetText("Cash Flow this week: " .. GL.Money(GL.cashWeek) .. "  (you: " .. GL.Money(GL.myCashWeek) .. ")")
@@ -244,8 +394,13 @@ function GL.RefreshWindow()
     for _, row in ipairs(rosterRows) do
         row:Hide()
     end
+    for _, row in ipairs(rewardRows) do
+        row:Hide()
+    end
     if current == "roster" then
         drawRoster()
+    elseif current == "rewards" then
+        drawRewards()
     else
         drawPerks()
     end
@@ -264,7 +419,10 @@ function GL.Toggle()
     end
     if current == "roster" then
         GL.Send("ROSTER")
+    elseif current == "rewards" and not GL.rewards[1] and GL.perks[1] then
+        GL.Send("REWARDS")
     end
+    retries = 0
     GL.RefreshWindow()
 end
 
@@ -320,7 +478,7 @@ loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
     -- Saved variables are only there once the addon has loaded.
     GuildLevelsDB = GuildLevelsDB or {}
-    current = GuildLevelsDB.tab == "roster" and "roster" or "perks"
+    current = (GuildLevelsDB.tab == "roster" or GuildLevelsDB.tab == "rewards") and GuildLevelsDB.tab or "perks"
     makeGuildButton()
     if GuildFrame then
         GuildFrame:HookScript("OnShow", function()
