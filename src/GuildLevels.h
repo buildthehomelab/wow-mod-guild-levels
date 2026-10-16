@@ -13,6 +13,7 @@
 #define MOD_GUILD_LEVELS_H
 
 #include "Define.h"
+#include "DatabaseEnvFwd.h"
 #include "ObjectGuid.h"
 #include <array>
 #include <string>
@@ -156,7 +157,8 @@ namespace GuildLevels
     std::vector<std::pair<ObjectGuid::LowType, MemberStats>> GetGuildMembers(uint32 guildId);
 
     void Load();
-    void Save(bool now);            // writes what changed; now = synchronous (shutdown)
+    void Save(bool now);
+    void SaveNews(CharacterDatabaseTransaction trans, bool& any);   // GuildLevelsNews.cpp, from Save            // writes what changed; now = synchronous (shutdown)
     void ProcessEvents();           // world thread: level-up announcements
 
     // --- perks (GuildLevelsPerks.cpp) ---
@@ -180,6 +182,33 @@ namespace GuildLevels
     };
     std::vector<PerkInfo> PerkList();
     std::string PerkName(uint8 level);
+
+    // --- news feed (GuildLevelsNews.cpp). Safe from any thread. ---
+
+    enum NewsType : uint8
+    {
+        NEWS_GUILD_LEVEL    = 0,    // value = level
+        NEWS_ENCOUNTER      = 1,    // value = DungeonEncounter.dbc id, extra = map difficulty
+        NEWS_ITEM_LOOTED    = 2,    // guid = member, value = item entry, extra = quality
+        NEWS_ITEM_CRAFTED   = 3,    // the same
+        NEWS_ACHIEVEMENT    = 4,    // guid = member, value = achievement id, extra = points
+    };
+
+    struct NewsItem
+    {
+        uint32 id;
+        uint8 type;
+        uint32 time;                // unix seconds
+        ObjectGuid::LowType guid;   // the member it's about, 0 for the whole guild
+        uint32 value;
+        uint32 extra;
+    };
+
+    void LoadNewsConfig();
+    void AddNews(uint32 guildId, NewsType type, ObjectGuid::LowType guid, uint32 value, uint32 extra = 0);
+    std::vector<NewsItem> GetNews(uint32 guildId);     // newest first
+    void ForgetGuildNews(uint32 guildId);
+    void LoadNews();
 
     // --- addon (GuildLevelsAddon.cpp) ---
 

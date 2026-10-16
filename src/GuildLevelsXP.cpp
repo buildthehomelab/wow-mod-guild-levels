@@ -119,6 +119,8 @@ namespace
         if (!percent || !FirstCredit(map, encounterId))
             return;
 
+        AddNews(best->first, NEWS_ENCOUNTER, 0, encounterId, map->GetDifficulty());
+
         double xp = map->IsRaid() ? GetConfig().bossXPRaid : GetConfig().bossXPDungeon;
         if (map->IsHeroic())
             xp *= GetConfig().heroicBonus;

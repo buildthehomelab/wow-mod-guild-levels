@@ -2,12 +2,20 @@
 -- and perks, and keeps them for Window.lua to draw.
 --
 -- Wire format, both directions: an addon whisper to yourself, "<COMMAND>:<field>:<field>...".
---   to the server    HELLO, STATE, ROSTER
+--   to the server    HELLO, STATE, ROSTER, NEWS
 --   from the server  S:<level>:<xp>:<needed>:<today>:<daily cap>:<total>:<my week>:<my total>
 --                      :<guild Cash Flow this week>:<guild Cash Flow total>:<my Cash Flow this week>
 --                    UP:<level>:<perk name>   (the guild just levelled up)
 --                    K:<level>:<name>:<description> ... KEND
 --                    R:<name>,<week>,<total>;... ... REND
+--                    N:<type>,<time>,<member>,<value>,<extra>,<text>,<text2>;... ... NEND:<server time>
+--                      newest first. type 0 guild level (value level, text perk), 1 boss (value
+--                      encounter, extra difficulty, text boss, text2 instance), 2 item looted and
+--                      3 item crafted (value item, extra quality, text item name), 4 achievement
+--                      (value id, extra points, text name).
+--
+-- Other addons (DragonUI's guild window) read the GuildLevels table and set GL.OnUpdate to hear
+-- about new data.
 
 local PREFIX = "GuildLevels"
 local MAX_LEVEL = 25
@@ -20,10 +28,13 @@ GuildLevels = {
     cashWeek = 0, cashTotal = 0, myCashWeek = 0,   -- copper
     perks = {},         -- in level order: { level, name, description }
     roster = {},        -- { name, week, total }, most this week first
+    news = {},          -- { type, time, who, value, extra, text, text2 }, newest first
+    newsClockOffset = 0,    -- server time minus time(), for "3 hours ago"
+    NEWS_GUILD_LEVEL = 0, NEWS_ENCOUNTER = 1, NEWS_ITEM_LOOTED = 2, NEWS_ITEM_CRAFTED = 3, NEWS_ACHIEVEMENT = 4,
     MAX_LEVEL = MAX_LEVEL,
 }
 local GL = GuildLevels
-local pendingPerks, pendingRoster
+local pendingPerks, pendingRoster, pendingNews
 
 -- Icons for the perk list, by the level the perk comes with.
 GL.ICONS = {
@@ -47,6 +58,9 @@ function GL.Refresh()
     end
     if GL.RefreshGuildButton then
         GL.RefreshGuildButton()
+    end
+    if GL.OnUpdate then
+        GL.OnUpdate()
     end
 end
 
@@ -88,6 +102,25 @@ local function onMessage(message)
     elseif command == "REND" then
         GL.roster = pendingRoster or {}
         pendingRoster = nil
+        GL.Refresh()
+    elseif command == "N" then
+        pendingNews = pendingNews or {}
+        for row in rest:gmatch("[^;]+") do
+            local t, when, who, value, extra, text, text2 = row:match("^(%d+),(%d+),([^,]*),(%d+),(%d+),([^,]*),(.*)$")
+            if t then
+                pendingNews[#pendingNews + 1] = {
+                    type = tonumber(t), time = tonumber(when), who = who ~= "" and who or nil,
+                    value = tonumber(value), extra = tonumber(extra), text = text, text2 = text2,
+                }
+            end
+        end
+    elseif command == "NEND" then
+        GL.news = pendingNews or {}
+        pendingNews = nil
+        local now = tonumber(rest)
+        if now then
+            GL.newsClockOffset = now - time()
+        end
         GL.Refresh()
     end
 end

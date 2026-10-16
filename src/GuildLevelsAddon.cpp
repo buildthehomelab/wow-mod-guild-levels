@@ -3,18 +3,24 @@
  * guild hooks that load, save and clean up.
  *
  * Addon wire format, both directions: an addon whisper to yourself, "GuildLevels\t<COMMAND>:...".
- *   client -> server  HELLO (perk list + state), STATE, ROSTER
+ *   client -> server  HELLO (perk list + state), STATE, ROSTER, NEWS
  *   server -> client  S:<level>:<xp>:<xp needed>:<today's xp>:<daily cap>:<total xp>:<my week>:<my total>
  *                       :<guild Cash Flow this week>:<guild Cash Flow total>:<my Cash Flow this week> (copper)
  *                     UP:<level>:<perk name>    the guild just reached that level
  *                     K:<level>:<name>:<description> ... KEND
  *                     R:<name>,<week xp>,<total xp>;... ... REND
+ *                     N:<type>,<time>,<member>,<value>,<extra>,<text>,<text2>;... ... NEND:<server time>
+ *                       newest first; type, value and extra as NewsType in GuildLevels.h. text is the
+ *                       level's perk, the boss, the item or the achievement by name; text2 the
+ *                       boss's instance. Texts lose any , ; or | they had.
  *
  * Released under the MIT License.
  */
 
 #include "GuildLevels.h"
 #include "CharacterCache.h"
+#include "DBCStores.h"
+#include "ObjectMgr.h"
 #include "Chat.h"
 #include "ChatCommand.h"
 #include "Guild.h"
@@ -36,7 +42,7 @@ namespace
     constexpr uint32 SAVE_INTERVAL_MS = 60 * IN_MILLISECONDS;
     constexpr Milliseconds REQUEST_COOLDOWN = 1s;
 
-    enum Request : uint8 { REQUEST_HELLO, REQUEST_STATE, REQUEST_ROSTER, REQUEST_COUNT };
+    enum Request : uint8 { REQUEST_HELLO, REQUEST_STATE, REQUEST_ROSTER, REQUEST_NEWS, REQUEST_COUNT };
 
     // Addon requests per player, each kind at most once a second (the addon sends two kinds
     // back to back when its window opens). World thread only.
@@ -112,6 +118,55 @@ namespace
             rows.push_back(Acore::StringFormat("{},{},{}", name, stats.weekXp, stats.totalXp));
         }
         SendRows(player, "R", rows, "REND");
+    }
+
+    std::string Clean(std::string text)
+    {
+        for (char& c : text)
+            if (c == ',' || c == ';' || c == '|')
+                c = ' ';
+        return text;
+    }
+
+    void SendNews(Player* player)
+    {
+        uint32 guildId = player->GetGuildId();
+        LocaleConstant locale = player->GetSession()->GetSessionDbcLocale();
+        std::vector<std::string> rows;
+        for (NewsItem const& n : guildId ? GetNews(guildId) : std::vector<NewsItem>{})
+        {
+            std::string who, text, text2;
+            if (n.guid && !sCharacterCache->GetCharacterNameByGuid(ObjectGuid::Create<HighGuid::Player>(n.guid), who))
+                continue;   // a deleted character
+
+            switch (n.type)
+            {
+                case NEWS_GUILD_LEVEL:
+                    text = PerkName(uint8(n.value));
+                    break;
+                case NEWS_ENCOUNTER:
+                    if (DungeonEncounterEntry const* encounter = sDungeonEncounterStore.LookupEntry(n.value))
+                    {
+                        text = encounter->encounterName[locale];
+                        if (MapEntry const* map = sMapStore.LookupEntry(encounter->mapId))
+                            text2 = map->name[locale];
+                    }
+                    break;
+                case NEWS_ITEM_LOOTED:
+                case NEWS_ITEM_CRAFTED:
+                    if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(n.value))
+                        text = proto->Name1;
+                    break;
+                case NEWS_ACHIEVEMENT:
+                    if (AchievementEntry const* achievement = sAchievementStore.LookupEntry(n.value))
+                        text = achievement->name[locale];
+                    break;
+                default:
+                    continue;
+            }
+            rows.push_back(Acore::StringFormat("{},{},{},{},{},{},{}", n.type, n.time, who, n.value, n.extra, Clean(text), Clean(text2)));
+        }
+        SendRows(player, "N", rows, Acore::StringFormat("NEND:{}", GameTime::GetGameTime().count()));
     }
 
     std::string Progress(uint32 guildId)
@@ -206,6 +261,11 @@ public:
             if (!Throttled(player, REQUEST_ROSTER))
                 SendRoster(player);
         }
+        else if (command == "NEWS")
+        {
+            if (!Throttled(player, REQUEST_NEWS))
+                SendNews(player);
+        }
         return false;
     }
 };
@@ -219,11 +279,13 @@ public:
     void OnAfterConfigLoad(bool /*reload*/) override
     {
         LoadConfig();
+        LoadNewsConfig();
     }
 
     void OnStartup() override
     {
         Load();
+        LoadNews();
         LoadHealingConsumables();
     }
 
@@ -265,6 +327,7 @@ public:
     void OnDisband(Guild* guild) override
     {
         ForgetGuild(guild->GetId());
+        ForgetGuildNews(guild->GetId());
     }
 };
 

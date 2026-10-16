@@ -88,6 +88,15 @@ Every value is in the config. Where 3.3.5 has nothing to match, the perk changed
 The three spells are learned when the guild reaches their level and unlearned when it doesn't have
 them (left the guild, `.guildlevel set` lower). The perks are checked every two seconds.
 
+## Guild news
+
+Like Cataclysm's Guild News, the module keeps a feed per guild, newest first: the guild reaching a
+level, dungeon and raid bosses killed by a guild group, epic items members looted, won in a roll
+or crafted, and achievements members earned. Bots' loot and achievements stay out unless
+`GuildLevels.News.Bots` is on. It keeps the newest `GuildLevels.News.Keep` items (100) and deletes
+older ones. The feed goes to addons with the `NEWS` request (see `src/GuildLevelsAddon.cpp`); the
+GuildLevels addon keeps it in `GuildLevels.news` for a guild window to show.
+
 ## Install
 
 ```bash
@@ -160,7 +169,7 @@ on the world database and `mod_guild_levels_uninstall_characters.sql` on the cha
 |---|---|
 | spells | 90450 Mount Up, 90451 The Quick and the Dead, 90455 For Great Justice (server only); 90452 Mobile Banking, 90453 Have Group, Will Travel, 90454 Mass Resurrection |
 | gameobject | 9503400 Guild Chest (a guild bank) |
-| characters tables | `mod_guild_levels`, `mod_guild_levels_member` |
+| characters tables | `mod_guild_levels`, `mod_guild_levels_member`, `mod_guild_levels_news` |
 
 ## License
 

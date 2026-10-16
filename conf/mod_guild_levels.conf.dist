@@ -142,3 +142,29 @@ GuildLevels.Perk.BountifulBagsChance = 15
 GuildLevels.Perk.Bartering = 10
 GuildLevels.Perk.MassResurrectionHealth = 35
 GuildLevels.Perk.MassResurrectionMinutes = 10
+
+########################################
+# Guild news
+########################################
+#
+#    GuildLevels.News.Enable
+#        Description: Keep a guild news feed for the guild window: guild levels, bosses killed
+#                     by a guild group, members' epic loot and crafts, and achievements.
+#        Default:     1
+#
+#    GuildLevels.News.Keep
+#        Description: News items kept per guild (10-500); older ones are deleted.
+#        Default:     100
+#
+#    GuildLevels.News.ItemQuality
+#        Description: Lowest item quality that makes the news (3 rare, 4 epic, 5 legendary).
+#        Default:     4
+#
+#    GuildLevels.News.Bots
+#        Description: Bots in the guild make the news with their loot and achievements too.
+#        Default:     0
+
+GuildLevels.News.Enable = 1
+GuildLevels.News.Keep = 100
+GuildLevels.News.ItemQuality = 4
+GuildLevels.News.Bots = 0
