@@ -188,10 +188,11 @@ mod-retail-pets' rows into the patch first if you use it: both tools add to the 
 
 `addon/GuildLevels` goes in `Interface/AddOns/GuildLevels`. It adds a **Guild Level** button to the
 guild tab of the social window, and `/glevel` opens the window: the guild's level and XP, today's
-XP against the daily cap, Cash Flow paid into the bank this week (the guild's and yours), the
-your guild reputation and this week's rep against the cap, the perks (the guild's in colour, the
-rest with the level they come at), the rewards with what each needs, and each member's guild XP
-this week and in total. At a guild vendor, a reward's tooltip shows its guild level and standing. When the guild levels up, a banner shows the new level and its perk,
+XP against the daily cap, Cash Flow paid into the bank this week (the guild's and yours), your
+guild reputation and this week's rep against the cap, and tabs for the perks (the guild's in
+colour, the rest with the level they come at), the rewards with what each needs, the guild news,
+and each member's guild XP this week and in total. The window uses only stock Blizzard art; with
+DragonUI, its own guild window shows the same instead. At a guild vendor, a reward's tooltip shows its guild level and standing. When the guild levels up, a banner shows the new level and its perk,
 with the level-up sound; clicking it opens the window. `sql/portalkeeper_addon.sql` adds it to
 [Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)'s addon list.
 
