@@ -1,8 +1,8 @@
 -- GuildLevels window: the guild's level and XP bar, your guild reputation, then four tabs: every
 -- perk (the ones the guild has in colour, the rest grayed with the level they come at), every
 -- guild reward with what it needs, the guild news, and this week's guild XP by member. All stock
--- Blizzard art; with DragonUI its own guild window shows the same instead. A "Guild Level" button
--- on the guild tab of the social window opens it, as does /glevel.
+-- Blizzard art; with DragonUI its own guild window shows the same instead. A side tab on the guild
+-- tab of the social window (the guild's level on a tabard icon) opens it, as does /glevel.
 
 local GL = GuildLevels
 local WIDTH, HEIGHT = 384, 506
@@ -619,19 +619,23 @@ end
 
 window:SetScript("OnShow", function()
     PlaySound("igCharacterInfoOpen")
+    GL.RefreshGuildButton()
 end)
 window:SetScript("OnHide", function()
     PlaySound("igCharacterInfoClose")
+    GL.RefreshGuildButton()
 end)
 
--- The button on the guild tab of the social window.
+-- The guild tab's way in: a spellbook-style side tab on the social window's right edge, with the
+-- guild's level on it (the top row of the guild tab has no room for a button).
 local guildButton
 function GL.RefreshGuildButton()
     if not guildButton then
         return
     end
     if GL.connected and GL.level > 0 then
-        guildButton:SetText("Guild Level " .. GL.level)
+        guildButton.level:SetText(GL.level)
+        guildButton:SetChecked(window:IsShown())
         guildButton:Show()
     else
         guildButton:Hide()
@@ -642,10 +646,15 @@ local function makeGuildButton()
     if guildButton or not GuildFrame then
         return
     end
-    guildButton = CreateFrame("Button", "GuildLevelsGuildButton", GuildFrame, "UIPanelButtonTemplate")
-    guildButton:SetSize(120, 22)
-    guildButton:SetPoint("TOPRIGHT", GuildFrame, "TOPRIGHT", -40, -42)
-    guildButton:SetScript("OnClick", GL.Toggle)
+    guildButton = CreateFrame("CheckButton", "GuildLevelsGuildButton", GuildFrame, "SpellBookSkillLineTabTemplate")
+    guildButton:SetPoint("TOPLEFT", GuildFrame, "TOPRIGHT", -32, -65)
+    guildButton:SetNormalTexture("Interface\\Icons\\INV_Shirt_GuildTabard_01")
+    guildButton.level = guildButton:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    guildButton.level:SetPoint("BOTTOMRIGHT", -2, 2)
+    guildButton:SetScript("OnClick", function(self)
+        GL.Toggle()
+        self:SetChecked(window:IsShown())
+    end)
     guildButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Guild Level " .. GL.level)
@@ -656,6 +665,7 @@ local function makeGuildButton()
         if nextPerk then
             GameTooltip:AddLine("Next perk: " .. nextPerk.name .. " (level " .. nextPerk.level .. ")", 1, 0.82, 0)
         end
+        GameTooltip:AddLine("Click for perks, rewards, news and contribution.", 0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)
     guildButton:SetScript("OnLeave", function()
