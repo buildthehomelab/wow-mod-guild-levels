@@ -186,8 +186,8 @@ mod-retail-pets' rows into the patch first if you use it: both tools add to the 
 
 ### The addon
 
-`addon/GuildLevels` goes in `Interface/AddOns/GuildLevels`. It adds a **Guild Level** button to the
-guild tab of the social window, and `/glevel` opens the window: the guild's level and XP, today's
+`addon/GuildLevels` goes in `Interface/AddOns/GuildLevels`. It adds a side tab (a guild tabard with the
+level on it) to the guild tab of the social window, and `/glevel` opens the window: the guild's level and XP, today's
 XP against the daily cap, Cash Flow paid into the bank this week (the guild's and yours), your
 guild reputation and this week's rep against the cap, and tabs for the perks (the guild's in
 colour, the rest with the level they come at), the rewards with what each needs, the guild news,
