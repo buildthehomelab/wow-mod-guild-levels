@@ -38,6 +38,7 @@ GuildLevels = {
     vendors = {},       -- [creature entry] = true for the guild vendors
     REWARD_CATEGORIES = { "Tabards", "Heirlooms", "Companions", "Mounts", "Consumables" },
     newsClockOffset = 0,    -- server time minus time(), for "3 hours ago"
+    newsAt = nil,           -- GetTime() when the news last came in
     NEWS_GUILD_LEVEL = 0, NEWS_ENCOUNTER = 1, NEWS_ITEM_LOOTED = 2, NEWS_ITEM_CRAFTED = 3, NEWS_ACHIEVEMENT = 4,
     MAX_LEVEL = MAX_LEVEL,
 }
@@ -145,6 +146,7 @@ local function onMessage(message)
         end
     elseif command == "NEND" then
         GL.news = pendingNews or {}
+        GL.newsAt = GetTime()
         pendingNews = nil
         local now = tonumber(rest)
         if now then
