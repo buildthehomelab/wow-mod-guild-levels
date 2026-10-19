@@ -21,6 +21,7 @@ window:RegisterForDrag("LeftButton")
 window:SetScript("OnDragStart", window.StartMoving)
 window:SetScript("OnDragStop", window.StopMovingOrSizing)
 window:SetClampedToScreen(true)
+window:SetClampRectInsets(0, 0, 12, -32)    -- keep the header plate and the tabs on screen
 window:SetBackdrop({
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -403,7 +404,7 @@ local function newsRow(i)
     row.time:SetJustifyH("RIGHT")
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.text:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 6, 2)
-    row.text:SetPoint("RIGHT", -64, 0)
+    row.text:SetPoint("RIGHT", -76, 0)
     row.text:SetHeight(30)
     row.text:SetJustifyH("LEFT")
     row.text:SetJustifyV("MIDDLE")
@@ -466,7 +467,7 @@ local function newsItem(item)
                 item.text ~= "" and item.text or ("Item " .. item.value))
         end
         local verb = item.type == GL.NEWS_ITEM_CRAFTED and "%s crafted %s." or "%s obtained %s."
-        return format(verb, member(item.who), link), icon or "Interface\\Icons\\INV_Misc_QuestionMark",
+        return format(verb, member(item.who), link), icon or GetItemIcon(item.value) or "Interface\\Icons\\INV_Misc_QuestionMark",
             "item:" .. item.value, link
     elseif item.type == GL.NEWS_ACHIEVEMENT then
         local _, name, _, _, _, _, _, _, _, icon = GetAchievementInfo(item.value)
