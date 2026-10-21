@@ -19,8 +19,11 @@
 #include "GuildMgr.h"
 #include "Log.h"
 #include "Player.h"
+#include "World.h"
+#include "WorldConfig.h"
 #include "WorldPacket.h"
 #include <algorithm>
+#include <cmath>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -185,6 +188,7 @@ namespace GuildLevels
         c.repFaction = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.Faction", 1168);
         c.repXPPerRep = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("GuildLevels.Rep.XPPerRep", 36));
         c.repWeeklyCap = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.WeeklyCap", 4375);
+        c.repRealmRate = sConfigMgr->GetOption<bool>("GuildLevels.Rep.RealmRate", true);
         c.rewardsEnabled = sConfigMgr->GetOption<bool>("GuildLevels.Rewards.Enable", true);
         config = c;
     }
@@ -367,6 +371,17 @@ namespace GuildLevels
         deletedReps.erase(guid);
     }
 
+    // The realm's Rate.Reputation.Gain, which the core only applies to rep it adds itself.
+    static float RepRate()
+    {
+        return config.repRealmRate ? std::max(0.0f, sWorld->getRate(RATE_REPUTATION_GAIN)) : 1.0f;
+    }
+
+    uint32 WeeklyRepCap()
+    {
+        return uint32(std::lround(double(config.repWeeklyCap) * RepRate()));
+    }
+
     uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted)
     {
         std::lock_guard<std::mutex> guard(lock);
@@ -378,11 +393,15 @@ namespace GuildLevels
             row.weekRep = 0;
         }
 
-        row.remainder += guildXp;
+        // The remainder is kept in rate-scaled guild XP, so 4x turns 9 guild XP into a point.
+        row.remainder += uint64(std::llround(double(guildXp) * RepRate()));
         uint64 rep = row.remainder / config.repXPPerRep;
         row.remainder %= config.repXPPerRep;
         if (config.repWeeklyCap)
-            rep = std::min<uint64>(rep, config.repWeeklyCap > row.weekRep ? config.repWeeklyCap - row.weekRep : 0);
+        {
+            uint32 cap = WeeklyRepCap();
+            rep = std::min<uint64>(rep, cap > row.weekRep ? cap - row.weekRep : 0);
+        }
         rep = std::min<uint64>(rep, roomToExalted);
         if (!rep)
             return 0;
