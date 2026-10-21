@@ -109,7 +109,9 @@ larger guild XP). A level 60 quest or a dungeon boss killed in a guild group is 
 boss about 165; everyone in the guild group gets the boss's rep. It counts what the member earned,
 so it still comes once the guild is level 25 or has reached its daily XP cap. A member can earn
 4,375 a week (`GuildLevels.Rep.WeeklyCap`, Cataclysm 4.2), Tuesday to Monday. Only real players
-earn it. The realm's `Rate.Reputation.Gain` doesn't apply to it, so the cap is what a member gets.
+earn it. Like other reputation it follows the realm's `Rate.Reputation.Gain`, which scales both the
+rep and the weekly cap (on a 4x realm: a point per 9 guild XP, 17,500 a week); set
+`GuildLevels.Rep.RealmRate = 0` to keep it at 1x.
 
 It is a real faction, **Your Guild** (Faction.dbc 1168) under a **Guild** header (1169), so it is in
 the reputation pane, can be watched as a bar and gives the usual "Reputation with Your Guild

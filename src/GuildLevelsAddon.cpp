@@ -226,7 +226,7 @@ namespace GuildLevels
     {
         uint32 guildId = player->GetGuildId();
         RepInfo rep = GetRepInfo(player);
-        uint32 cap = GetConfig().repEnabled ? GetConfig().repWeeklyCap : 0;
+        uint32 cap = GetConfig().repEnabled ? WeeklyRepCap() : 0;
         if (!guildId || !GetConfig().enabled)
         {
             SendAddon(player, Acore::StringFormat("S:0:0:0:0:0:0:0:0:0:0:0:0:3:0:{}", cap));

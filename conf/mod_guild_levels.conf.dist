@@ -192,13 +192,19 @@ GuildLevels.News.Bots = 0
 #
 #    GuildLevels.Rep.WeeklyCap
 #        Description: Most guild rep a member can earn in a week, Tuesday to Monday
-#                     (Cataclysm 4.2: 4375). 0 = no cap.
+#                     (Cataclysm 4.2: 4375), before GuildLevels.Rep.RealmRate. 0 = no cap.
 #        Default:     4375
+#
+#    GuildLevels.Rep.RealmRate
+#        Description: Multiply guild rep and the weekly cap by the realm's Rate.Reputation.Gain,
+#                     like other reputation (at 4: one point per 9 guild XP, 17500 a week).
+#        Default:     1
 
 GuildLevels.Rep.Enable = 1
 GuildLevels.Rep.Faction = 1168
 GuildLevels.Rep.XPPerRep = 36
 GuildLevels.Rep.WeeklyCap = 4375
+GuildLevels.Rep.RealmRate = 1
 
 ########################################
 # Guild vendors

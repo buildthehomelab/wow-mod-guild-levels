@@ -125,6 +125,7 @@ namespace GuildLevels
         uint32 repFaction = 1168;       // Faction.dbc row the rep goes to
         uint32 repXPPerRep = 36;        // guild XP a member earns per point of rep
         uint32 repWeeklyCap = 4375;     // 0 = no cap
+        bool repRealmRate = true;       // scale rep and weekly cap by Rate.Reputation.Gain
 
         // Guild vendors
         bool rewardsEnabled = true;
@@ -182,8 +183,11 @@ namespace GuildLevels
     // A member's rep belongs to the guild they earned it in; this is that guild (0: none yet).
     uint32 GetRepGuild(ObjectGuid::LowType guid);
     void SetRepGuild(ObjectGuid::LowType guid, uint32 guildId);
-    // Turns guild XP into rep: keeps the remainder, applies the weekly cap, returns the rep.
+    // Turns guild XP into rep: keeps the remainder, applies the realm rate and the weekly cap,
+    // returns the rep.
     uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted);
+    // GuildLevels.Rep.WeeklyCap times the realm rate (0 = no cap).
+    uint32 WeeklyRepCap();
     uint32 GetWeekRep(ObjectGuid::LowType guid);
     void ForgetRep(ObjectGuid::LowType guid);
 

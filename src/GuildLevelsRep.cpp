@@ -13,8 +13,10 @@
  * earned in: in another guild it starts over at Neutral, and while the member is in no guild it
  * waits under Inactive, back where it was if they rejoin the same guild.
  *
- * The rep is set outright, not added through the core's reputation gain, so the realm's
- * Rate.Reputation.Gain leaves it alone: the weekly cap is what a member really gets.
+ * The rep is set outright, not added through the core's reputation gain (which would apply
+ * Rate.Reputation.Gain after the weekly cap). The module applies the realm rate itself instead,
+ * to both the rep and the weekly cap (GuildLevels.Rep.RealmRate), so a 4x realm earns guild rep
+ * four times as fast and the cap shown is what a member really gets.
  *
  * Everything here runs on the player's own map thread (their update, a quest, a boss kill, a
  * purchase) or the world thread at login.
