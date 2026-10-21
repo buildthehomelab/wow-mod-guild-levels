@@ -195,7 +195,8 @@ guild reputation and this week's rep against the cap, and tabs for the perks (th
 colour, the rest with the level they come at), the rewards with what each needs, the guild news,
 and each member's guild XP this week and in total. The window uses only stock Blizzard art; with
 DragonUI, its own guild window shows the same instead. At a guild vendor, a reward's tooltip shows its guild level and standing. When the guild levels up, a banner shows the new level and its perk,
-with the level-up sound; clicking it opens the window. `sql/portalkeeper_addon.sql` adds it to
+with the level-up sound; clicking it opens the window. With DragonUI's Level Up Enhance module on,
+DragonUI's own level-up banner shows it instead. `sql/portalkeeper_addon.sql` adds it to
 [Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)'s addon list.
 
 ## The core hook
