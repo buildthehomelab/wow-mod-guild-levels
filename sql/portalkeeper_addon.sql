@@ -1,5 +1,5 @@
 -- Makes the GuildLevels addon required for every player through Portalkeeper (mod-realm-config).
--- Run by hand against acore_world once the repo is public on GitHub. It is kept out of
+-- Run by hand against acore_world. It is kept out of
 -- data/sql on purpose: the table belongs to mod-realm-config, and a failing statement there
 -- would stop the database import at startup.
 
