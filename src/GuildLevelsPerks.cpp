@@ -256,7 +256,7 @@ namespace GuildLevels
         return
         {
             { PERK_FAST_TRACK_1, "Fast Track", f("Experience from killing monsters and completing quests increased by {}%.", c.fastTrack1) },
-            { PERK_MOUNT_UP, "Mount Up", f("Mounted and flying speed increased by {}%. Not active in battlegrounds and arenas.", c.mountUp) },
+            { PERK_MOUNT_UP, "Mount Up", f("Mounted and flying speed increased by {}%, also in Travel Form, the flight forms and Ghost Wolf. Not active in battlegrounds and arenas.", c.mountUp) },
             { PERK_MR_POPULARITY_1, "Mr. Popularity", f("Reputation from killing monsters and completing quests increased by {}%.", c.mrPopularity1) },
             { PERK_CASH_FLOW_1, "Cash Flow", f("Each time you loot money from an enemy, an extra {}% is deposited into your guild bank.", c.cashFlow1) },
             { PERK_FAST_TRACK_2, "Fast Track (Rank 2)", f("Experience from killing monsters and completing quests increased by {}%.", c.fastTrack2) },
