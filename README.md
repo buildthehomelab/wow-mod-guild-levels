@@ -38,7 +38,7 @@ they leave the guild.
 
 | Level | Perk | Effect |
 |---|---|---|
-| 2 | Fast Track | +5% XP from kills and quests |
+| 2 | Fast Track | +5% XP from kills and quests (none for a [mod-challenges](https://github.com/buildthehomelab/wow-mod-challenges) Hardcore character, whose XP is capped at 1x) |
 | 3 | Mount Up | +10% mounted and flying speed (not in battlegrounds and arenas); with [mod-forever-druid](https://github.com/buildthehomelab/wow-mod-forever-druid) and [mod-forever-shaman](https://github.com/buildthehomelab/wow-mod-forever-shaman) also Travel Form, the flight forms and Ghost Wolf |
 | 4 | Mr. Popularity | +5% reputation from kills and quests |
 | 5 | Cash Flow | an extra 5% of money looted from enemies goes into the guild bank (the addon shows the week's total) |

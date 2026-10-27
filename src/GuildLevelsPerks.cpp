@@ -50,6 +50,11 @@
 #include "Log.h"
 #include "Util.h"
 #include "ObjectMgr.h"
+#if __has_include("ChallengesApi.h")
+#include "ChallengesApi.h"
+#endif
+#include <algorithm>
+#include <cmath>
 #include <functional>
 #include <unordered_set>
 
@@ -378,7 +383,13 @@ public:
     {
         if (xpSource != XPSOURCE_KILL && xpSource != XPSOURCE_QUEST && xpSource != XPSOURCE_QUEST_DF)
             return;
-        if (uint32 pct = Pick(player, PERK_FAST_TRACK_2, GetConfig().fastTrack2, PERK_FAST_TRACK_1, GetConfig().fastTrack1))
+        uint32 pct = Pick(player, PERK_FAST_TRACK_2, GetConfig().fastTrack2, PERK_FAST_TRACK_1, GetConfig().fastTrack1);
+#if __has_include("ChallengesApi.h")
+        // A challenge that caps experience (mod-challenges' Hardcore: 1x) caps the bonus with it.
+        if (float const cap = Challenges::XpRateCap(player->GetGUID().GetCounter()))
+            pct = std::min<uint32>(pct, cap > 1.0f ? uint32(std::lround((cap - 1.0f) * 100.0f)) : 0);
+#endif
+        if (pct)
             amount += amount * pct / 100;
     }
 
