@@ -227,7 +227,10 @@ public:
 
     void OnPlayerAchievementComplete(Player* player, AchievementEntry const* achievement) override
     {
-        if (!Counts(player, Settings()) || !achievement || (achievement->flags & ACHIEVEMENT_FLAG_COUNTER))
+        // Achievements handed out while a character loads (an account's shared ones, such as
+        // mod-challenges' Hardcore titles) were earned somewhere else: not news.
+        if (!Counts(player, Settings()) || !achievement || (achievement->flags & ACHIEVEMENT_FLAG_COUNTER) ||
+            player->GetSession()->PlayerLoading())
             return;
         AddNews(player->GetGuildId(), NEWS_ACHIEVEMENT, player->GetGUID().GetCounter(), achievement->ID, achievement->points);
     }
