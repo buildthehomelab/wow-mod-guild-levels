@@ -189,6 +189,7 @@ namespace GuildLevels
         c.repXPPerRep = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("GuildLevels.Rep.XPPerRep", 36));
         c.repWeeklyCap = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.WeeklyCap", 4375);
         c.repRealmRate = sConfigMgr->GetOption<bool>("GuildLevels.Rep.RealmRate", true);
+        c.repTabardBonus = pct("GuildLevels.Rep.TabardBonus", 10);
         c.rewardsEnabled = sConfigMgr->GetOption<bool>("GuildLevels.Rewards.Enable", true);
         config = c;
     }

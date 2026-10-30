@@ -80,8 +80,8 @@ INSERT INTO `mod_guild_levels_reward` (`item`, `team`, `guild_level`, `rep_rank`
 DELETE FROM `item_template` WHERE `entry` IN (90456, 90457, 90458, 90459, 90460, 90464, 90465);
 INSERT INTO `item_template` (`entry`, `class`, `subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `ItemLevel`,
     `maxcount`, `stackable`, `bonding`, `Material`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `description`) VALUES
-(90456, 4, 0, 'Renowned Guild Tabard', 20621, 3, 19, 1, 1, 1, 1, 7, 90456, 0, 0, 'Shows your guild\'s emblem.'),
-(90457, 4, 0, 'Illustrious Guild Tabard', 20621, 4, 19, 1, 1, 1, 1, 7, 90457, 0, 0, 'Shows your guild\'s emblem.'),
+(90456, 4, 0, 'Renowned Guild Tabard', 20621, 3, 19, 1, 1, 1, 1, 7, 90456, 0, 0, 'Shows your guild\'s emblem. Wearing it earns more guild reputation.'),
+(90457, 4, 0, 'Illustrious Guild Tabard', 20621, 4, 19, 1, 1, 1, 1, 7, 90457, 0, 0, 'Shows your guild\'s emblem. Wearing it earns more guild reputation.'),
 (90458, 0, 8, 'Guild Battle Standard', 16263, 1, 0, 1, 0, 20, 1, 4, 90458, 0, -1, ''),
 (90459, 0, 8, 'Greater Guild Battle Standard', 932, 2, 0, 1, 0, 20, 1, 4, 90459, 0, -1, ''),
 (90460, 0, 8, 'Grand Guild Battle Standard', 3091, 3, 0, 1, 0, 20, 1, 4, 90460, 0, -1, ''),

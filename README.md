@@ -113,6 +113,10 @@ earn it. Like other reputation it follows the realm's `Rate.Reputation.Gain`, wh
 rep and the weekly cap (on a 4x realm: a point per 9 guild XP, 17,500 a week); set
 `GuildLevels.Rep.RealmRate = 0` to keep it at 1x.
 
+Wearing a guild tabard (the stock Guild Tabard, or the Renowned or Illustrious one from the guild
+vendor) earns 10% more guild rep (`GuildLevels.Rep.TabardBonus`), a small take on Cataclysm's
+guild championing. The weekly cap doesn't change, so the tabard only gets a member there sooner.
+
 It is a real faction, **Your Guild** (Faction.dbc 1168) under a **Guild** header (1169), so it is in
 the reputation pane, can be watched as a bar and gives the usual "Reputation with Your Guild
 increased" lines. The rep belongs to the guild it was earned in: joining another guild starts it
