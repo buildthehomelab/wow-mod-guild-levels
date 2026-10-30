@@ -5,7 +5,9 @@
  * themself: GuildLevels.Rep.XPPerRep guild XP is one point (Cataclysm: 360, but this module's
  * guild XP is far smaller). It counts what the member earned, not what the guild kept, so rep
  * still comes once the guild is level 25 or has hit its daily cap. Each member can earn
- * GuildLevels.Rep.WeeklyCap a week (Cataclysm 4.2: 4,375), weeks starting on Tuesday.
+ * GuildLevels.Rep.WeeklyCap a week (Cataclysm 4.2: 4,375), weeks starting on Tuesday. A member
+ * wearing a guild tabard (the stock one or a reward) earns GuildLevels.Rep.TabardBonus percent
+ * more, within the same weekly cap.
  *
  * The rep is a real faction (Faction.dbc 1168 "Your Guild", under the "Guild" header 1169, both
  * in the client patch and faction_dbc), so the core keeps the standing, saves it with the
@@ -27,6 +29,7 @@
 #include "GuildLevels.h"
 #include "DataMap.h"
 #include "DBCStores.h"
+#include "Item.h"
 #include "Player.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
@@ -60,6 +63,15 @@ namespace
             return;
         if (bool(state->Flags & FACTION_FLAG_INACTIVE) != inactive)
             reps.SetInactive(faction->reputationListID, inactive);
+    }
+
+    bool WearsGuildTabard(Player* player)
+    {
+        Item* tabard = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_TABARD);
+        if (!tabard)
+            return false;
+        uint32 entry = tabard->GetEntry();
+        return entry == ITEM_GUILD_TABARD || entry == ITEM_RENOWNED_GUILD_TABARD || entry == ITEM_ILLUSTRIOUS_GUILD_TABARD;
     }
 }
 
@@ -110,6 +122,10 @@ namespace GuildLevels
             return;
 
         RefreshGuildRep(player);
+
+        // Wearing a guild tabard counts the guild XP as that much more. The weekly cap still holds.
+        if (GetConfig().repTabardBonus && WearsGuildTabard(player))
+            guildXp += guildXp * GetConfig().repTabardBonus / 100;
 
         // Rep past Exalted would only use up the week.
         ReputationMgr& reps = player->GetReputationMgr();

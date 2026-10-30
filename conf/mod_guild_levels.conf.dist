@@ -199,12 +199,19 @@ GuildLevels.News.Bots = 0
 #        Description: Multiply guild rep and the weekly cap by the realm's Rate.Reputation.Gain,
 #                     like other reputation (at 4: one point per 9 guild XP, 17500 a week).
 #        Default:     1
+#
+#    GuildLevels.Rep.TabardBonus
+#        Description: Percent more guild rep while wearing a guild tabard: the stock Guild
+#                     Tabard (5976) or the Renowned / Illustrious Guild Tabard. The weekly cap
+#                     stays the same, so it gets a member there sooner. 0 = off.
+#        Default:     10
 
 GuildLevels.Rep.Enable = 1
 GuildLevels.Rep.Faction = 1168
 GuildLevels.Rep.XPPerRep = 36
 GuildLevels.Rep.WeeklyCap = 4375
 GuildLevels.Rep.RealmRate = 1
+GuildLevels.Rep.TabardBonus = 10
 
 ########################################
 # Guild vendors

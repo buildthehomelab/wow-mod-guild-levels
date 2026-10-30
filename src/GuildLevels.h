@@ -81,6 +81,11 @@ namespace GuildLevels
 
     constexpr uint32 GO_GUILD_CHEST = 9503400;  // Mobile Banking's guild bank, gameobject type 34
 
+    // Guild tabards: the stock one and the two rewards. Wearing one earns GuildLevels.Rep.TabardBonus.
+    constexpr uint32 ITEM_GUILD_TABARD = 5976;
+    constexpr uint32 ITEM_RENOWNED_GUILD_TABARD = 90456;
+    constexpr uint32 ITEM_ILLUSTRIOUS_GUILD_TABARD = 90457;
+
     // The battle standards the standard items plant, ranks 1-3 (creature_template).
     constexpr uint32 NPC_BATTLE_STANDARD_1 = 9503410;
     constexpr uint32 NPC_BATTLE_STANDARD_3 = 9503412;
@@ -126,6 +131,7 @@ namespace GuildLevels
         uint32 repXPPerRep = 36;        // guild XP a member earns per point of rep
         uint32 repWeeklyCap = 4375;     // 0 = no cap
         bool repRealmRate = true;       // scale rep and weekly cap by Rate.Reputation.Gain
+        uint32 repTabardBonus = 10;     // percent more rep while wearing a guild tabard
 
         // Guild vendors
         bool rewardsEnabled = true;
