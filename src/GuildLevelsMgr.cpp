@@ -1,7 +1,7 @@
 /*
  * mod-guild-levels: guild XP, levels and their storage.
  *
- * Guild XP and guild rep arrive from map threads (quests, boss kills), so all of the state below
+ * Guild XP and guild rep arrive from map threads (quests, boss kills, tabard kills), so all of the state below
  * sits behind one mutex and the hooks only ever hold it briefly. Nothing is written to the database from a
  * hook: changed guilds and members are marked dirty and saved together every SaveInterval
  * seconds (and on shutdown). Level-ups are queued and announced from the world thread, where
@@ -157,6 +157,7 @@ namespace GuildLevels
         c.dailyCapUntilLevel = uint8(std::min<uint32>(MAX_LEVEL, sConfigMgr->GetOption<uint32>("GuildLevels.XP.DailyCapUntilLevel", 20)));
         c.raidGuildMembers = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("GuildLevels.XP.RaidGuildMembers", 10));
         c.botGuildsEarn = sConfigMgr->GetOption<bool>("GuildLevels.XP.BotGuildsEarn", false);
+        c.tabardKillXP = sConfigMgr->GetOption<uint32>("GuildLevels.XP.TabardKill", 10);
 
         auto pct = [](char const* key, uint32 def) { return std::min<uint32>(1000, sConfigMgr->GetOption<uint32>(key, def)); };
         c.fastTrack1 = pct("GuildLevels.Perk.FastTrack1", 5);
@@ -190,6 +191,7 @@ namespace GuildLevels
         c.repWeeklyCap = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.WeeklyCap", 4375);
         c.repRealmRate = sConfigMgr->GetOption<bool>("GuildLevels.Rep.RealmRate", true);
         c.repTabardBonus = pct("GuildLevels.Rep.TabardBonus", 10);
+        c.repTabardKill = sConfigMgr->GetOption<uint32>("GuildLevels.Rep.TabardKill", 1);
         c.rewardsEnabled = sConfigMgr->GetOption<bool>("GuildLevels.Rewards.Enable", true);
         config = c;
     }
@@ -383,21 +385,9 @@ namespace GuildLevels
         return uint32(std::lround(double(config.repWeeklyCap) * RepRate()));
     }
 
-    uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted)
+    // Holds rep to the weekly cap and to Exalted. Under the lock.
+    static uint32 TakeFromWeek(ObjectGuid::LowType guid, RepRow& row, uint64 rep, uint32 roomToExalted)
     {
-        std::lock_guard<std::mutex> guard(lock);
-        RepRow& row = reps[guid];
-        uint32 week = ThisWeek();
-        if (row.week != week)
-        {
-            row.week = week;
-            row.weekRep = 0;
-        }
-
-        // The remainder is kept in rate-scaled guild XP, so 4x turns 9 guild XP into a point.
-        row.remainder += uint64(std::llround(double(guildXp) * RepRate()));
-        uint64 rep = row.remainder / config.repXPPerRep;
-        row.remainder %= config.repXPPerRep;
         if (config.repWeeklyCap)
         {
             uint32 cap = WeeklyRepCap();
@@ -411,6 +401,36 @@ namespace GuildLevels
         dirtyReps.insert(guid);
         deletedReps.erase(guid);
         return uint32(rep);
+    }
+
+    static RepRow& ThisWeeksRow(ObjectGuid::LowType guid)
+    {
+        RepRow& row = reps[guid];
+        uint32 week = ThisWeek();
+        if (row.week != week)
+        {
+            row.week = week;
+            row.weekRep = 0;
+        }
+        return row;
+    }
+
+    uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        RepRow& row = ThisWeeksRow(guid);
+
+        // The remainder is kept in rate-scaled guild XP, so 4x turns 9 guild XP into a point.
+        row.remainder += uint64(std::llround(double(guildXp) * RepRate()));
+        uint64 rep = row.remainder / config.repXPPerRep;
+        row.remainder %= config.repXPPerRep;
+        return TakeFromWeek(guid, row, rep, roomToExalted);
+    }
+
+    uint32 TakeFlatRep(ObjectGuid::LowType guid, uint32 rep, uint32 roomToExalted)
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        return TakeFromWeek(guid, ThisWeeksRow(guid), rep, roomToExalted);
     }
 
     uint32 GetWeekRep(ObjectGuid::LowType guid)

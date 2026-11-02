@@ -7,7 +7,8 @@
  * still comes once the guild is level 25 or has hit its daily cap. Each member can earn
  * GuildLevels.Rep.WeeklyCap a week (Cataclysm 4.2: 4,375), weeks starting on Tuesday. A member
  * wearing a guild tabard (the stock one or a reward) earns GuildLevels.Rep.TabardBonus percent
- * more, within the same weekly cap.
+ * more, within the same weekly cap, and GuildLevels.Rep.TabardKill per kill (GuildLevelsXP.cpp),
+ * which no realm rate changes.
  *
  * The rep is a real faction (Faction.dbc 1168 "Your Guild", under the "Guild" header 1169, both
  * in the client patch and faction_dbc), so the core keeps the standing, saves it with the
@@ -64,7 +65,10 @@ namespace
         if (bool(state->Flags & FACTION_FLAG_INACTIVE) != inactive)
             reps.SetInactive(faction->reputationListID, inactive);
     }
+}
 
+namespace GuildLevels
+{
     bool WearsGuildTabard(Player* player)
     {
         Item* tabard = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_TABARD);
@@ -73,10 +77,7 @@ namespace
         uint32 entry = tabard->GetEntry();
         return entry == ITEM_GUILD_TABARD || entry == ITEM_RENOWNED_GUILD_TABARD || entry == ITEM_ILLUSTRIOUS_GUILD_TABARD;
     }
-}
 
-namespace GuildLevels
-{
     void RefreshGuildRep(Player* player)
     {
         if (!GetConfig().repEnabled || !IsRealPlayer(player))
@@ -134,6 +135,24 @@ namespace GuildLevels
 
         if (uint32 rep = TakeRep(player->GetGUID().GetCounter(), guildXp, room))
             reps.SetReputation(faction, float(standing + int32(rep)));
+    }
+
+    void GainFlatGuildRep(Player* player, uint32 rep)
+    {
+        if (!GetConfig().enabled || !GetConfig().repEnabled || !rep || !player->GetGuildId() || !IsRealPlayer(player))
+            return;
+        FactionEntry const* faction = GuildFaction();
+        if (!faction)
+            return;
+
+        RefreshGuildRep(player);
+
+        ReputationMgr& reps = player->GetReputationMgr();
+        int32 standing = reps.GetReputation(faction);
+        uint32 room = standing < ReputationMgr::Reputation_Cap ? uint32(ReputationMgr::Reputation_Cap - standing) : 0;
+
+        if (uint32 gained = TakeFlatRep(player->GetGUID().GetCounter(), rep, room))
+            reps.SetReputation(faction, float(standing + int32(gained)));
     }
 
     RepInfo GetRepInfo(Player* player)
