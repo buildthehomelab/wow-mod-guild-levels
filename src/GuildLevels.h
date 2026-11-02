@@ -81,7 +81,8 @@ namespace GuildLevels
 
     constexpr uint32 GO_GUILD_CHEST = 9503400;  // Mobile Banking's guild bank, gameobject type 34
 
-    // Guild tabards: the stock one and the two rewards. Wearing one earns GuildLevels.Rep.TabardBonus.
+    // Guild tabards: the stock one and the two rewards. Wearing one earns GuildLevels.Rep.TabardBonus,
+    // GuildLevels.Rep.TabardKill and GuildLevels.XP.TabardKill.
     constexpr uint32 ITEM_GUILD_TABARD = 5976;
     constexpr uint32 ITEM_RENOWNED_GUILD_TABARD = 90456;
     constexpr uint32 ITEM_ILLUSTRIOUS_GUILD_TABARD = 90457;
@@ -105,6 +106,7 @@ namespace GuildLevels
         uint8 dailyCapUntilLevel = 20;  // the cap stops applying once the guild reaches this level
         uint32 raidGuildMembers = 10;   // raid kills: guild members needed (at most 80% of the raid)
         bool botGuildsEarn = false;     // guilds without a real player never earn XP when false
+        uint32 tabardKillXP = 10;       // flat guild XP per kill in a guild tabard, 0 = off
 
         // Perks (percent unless noted)
         uint32 fastTrack1 = 5, fastTrack2 = 10;
@@ -132,6 +134,7 @@ namespace GuildLevels
         uint32 repWeeklyCap = 4375;     // 0 = no cap
         bool repRealmRate = true;       // scale rep and weekly cap by Rate.Reputation.Gain
         uint32 repTabardBonus = 10;     // percent more rep while wearing a guild tabard
+        uint32 repTabardKill = 1;       // flat rep per kill in a guild tabard, 0 = off
 
         // Guild vendors
         bool rewardsEnabled = true;
@@ -192,6 +195,7 @@ namespace GuildLevels
     // Turns guild XP into rep: keeps the remainder, applies the realm rate and the weekly cap,
     // returns the rep.
     uint32 TakeRep(ObjectGuid::LowType guid, uint64 guildXp, uint32 roomToExalted);
+    uint32 TakeFlatRep(ObjectGuid::LowType guid, uint32 rep, uint32 roomToExalted);
     // GuildLevels.Rep.WeeklyCap times the realm rate (0 = no cap).
     uint32 WeeklyRepCap();
     uint32 GetWeekRep(ObjectGuid::LowType guid);
@@ -253,8 +257,12 @@ namespace GuildLevels
 
     // --- guild reputation (GuildLevelsRep.cpp). Map thread of the player. ---
 
+    bool WearsGuildTabard(Player* player);
+
     // Rep for guild XP the player earned themself (quests, a boss killed in a guild group).
     void GainGuildRep(Player* player, uint64 guildXp);
+    // Rep as it is: no realm rate, no tabard bonus. Inside the same weekly cap.
+    void GainFlatGuildRep(Player* player, uint32 rep);
     // Resets the rep when the player is now in a different guild than the one it was earned in,
     // and moves it to Inactive while they're in none.
     void RefreshGuildRep(Player* player);

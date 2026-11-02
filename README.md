@@ -1,8 +1,8 @@
 # mod-guild-levels
 
 Cataclysm-style guild levels for [AzerothCore](https://www.azerothcore.org) (WotLK 3.3.5a). A guild
-earns guild XP from its members' quests and from dungeon and raid bosses killed as a guild group,
-and climbs from level 1 to 25. Every level from 2 to 25 unlocks a guild perk, in Cataclysm's order.
+earns guild XP from its members' quests, from dungeon and raid bosses killed as a guild group and
+from kills made in a guild tabard, and climbs from level 1 to 25. Every level from 2 to 25 unlocks a guild perk, in Cataclysm's order.
 Members also earn reputation with their guild, which buys guild rewards (heirlooms, tabards,
 mounts, pets, battle standards and cauldrons) from a guild vendor in each capital. The GuildLevels
 addon shows the guild's level, XP, perks, rewards and each member's contribution.
@@ -14,12 +14,18 @@ addon shows the guild's level, XP, perks, rewards and each member's contribution
 | A quest | 25% of the quest's XP (`GuildLevels.XP.QuestShare`). Counts at the level cap too, where the quest pays money instead. Repeat completions that give no XP give none. |
 | A dungeon boss killed by a guild group | 2000 (`GuildLevels.XP.BossDungeon`): 50% with 3 guild members in the group, 100% with 4, 125% with 5 |
 | A raid boss killed by a guild group | 6000 (`GuildLevels.XP.BossRaid`) with 10 guild members (`GuildLevels.XP.RaidGuildMembers`, at most 80% of the raid) |
+| A kill while wearing a guild tabard | 10 per member wearing one (`GuildLevels.XP.TabardKill`): the stock Guild Tabard, or the Renowned or Illustrious one from the guild vendor. A flat amount that no realm rate changes. |
 
 Heroic dungeons and raids pay 1.5×. A boss that is gray to the highest-level guild member pays
 nothing. A boss is one of the instance's encounters (DungeonEncounter.dbc), paid when the core
 credits it and once per instance, so a council of several creatures pays once. The players in the
 instance are the group: the guild with the most members among them is the guild group. Quest XP
 is paid when the reward goes through, not when the quest giver's window shows it.
+
+Tabard kills count for each member the kill rewards (the tagger, or each of their group in reach)
+who is alive. Creatures gray to the member, critters, totems, pets and creatures that give no XP
+pay nothing. This XP counts toward the daily cap, and doesn't turn into guild rep: the same kills pay
+their own (see [Guild reputation](#guild-reputation)).
 
 The XP needed for each level is Cataclysm's table (16.58 million for level 2 up to 54.73 million
 for level 25, 855.69 million in all) times `GuildLevels.XP.CurveScale`. The default, 0.0125, makes
@@ -116,6 +122,8 @@ rep and the weekly cap (on a 4x realm: a point per 9 guild XP, 17,500 a week); s
 Wearing a guild tabard (the stock Guild Tabard, or the Renowned or Illustrious one from the guild
 vendor) earns 10% more guild rep (`GuildLevels.Rep.TabardBonus`), a small take on Cataclysm's
 guild championing. The weekly cap doesn't change, so the tabard only gets a member there sooner.
+Each kill in a guild tabard also pays 1 guild rep (`GuildLevels.Rep.TabardKill`). The realm's rate
+and the 10% don't multiply it, and it counts toward the weekly cap.
 
 It is a real faction, **Your Guild** (Faction.dbc 1168) under a **Guild** header (1169), so it is in
 the reputation pane, can be watched as a bar and gives the usual "Reputation with Your Guild

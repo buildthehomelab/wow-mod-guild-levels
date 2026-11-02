@@ -60,6 +60,15 @@ GuildLevels.Announce = 1
 #                     size of a guild group. 1 lets bots earn XP too, so playerbots' own guilds
 #                     level up.
 #        Default:     0
+#
+#    GuildLevels.XP.TabardKill
+#        Description: Guild XP for each creature kill that rewards a living member wearing a
+#                     guild tabard: the stock Guild Tabard (5976) or the Renowned / Illustrious
+#                     Guild Tabard. A flat amount: no realm rate changes it, and it counts toward
+#                     the daily cap. Creatures gray to the member, critters, totems, pets and
+#                     creatures that give no XP pay nothing. GuildLevels.Rep.TabardKill is the rep
+#                     for the same kills. 0 = off.
+#        Default:     10
 
 GuildLevels.XP.CurveScale = 0.0125
 GuildLevels.XP.QuestShare = 0.25
@@ -70,6 +79,7 @@ GuildLevels.XP.RaidGuildMembers = 10
 GuildLevels.XP.DailyCap = 150000
 GuildLevels.XP.DailyCapUntilLevel = 20
 GuildLevels.XP.BotGuildsEarn = 0
+GuildLevels.XP.TabardKill = 10
 
 #
 #    Perks. Percentages unless the name says otherwise; the guild level each one comes with is
@@ -205,6 +215,13 @@ GuildLevels.News.Bots = 0
 #                     Tabard (5976) or the Renowned / Illustrious Guild Tabard. The weekly cap
 #                     stays the same, so it gets a member there sooner. 0 = off.
 #        Default:     10
+#
+#    GuildLevels.Rep.TabardKill
+#        Description: Guild rep for the kills GuildLevels.XP.TabardKill counts, whether or not the
+#                     guild is paid XP for them (level 25, daily cap). Real players only. A flat
+#                     amount: Rate.Reputation.Gain and GuildLevels.Rep.TabardBonus don't change it.
+#                     It counts toward the weekly cap. 0 = off.
+#        Default:     1
 
 GuildLevels.Rep.Enable = 1
 GuildLevels.Rep.Faction = 1168
@@ -212,6 +229,7 @@ GuildLevels.Rep.XPPerRep = 36
 GuildLevels.Rep.WeeklyCap = 4375
 GuildLevels.Rep.RealmRate = 1
 GuildLevels.Rep.TabardBonus = 10
+GuildLevels.Rep.TabardKill = 1
 
 ########################################
 # Guild vendors

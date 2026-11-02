@@ -10,9 +10,13 @@
  *   80% of the raid. Bosses that are gray to the highest-level member give nothing. A boss is
  *   an encounter of the instance (DungeonEncounter.dbc), paid when the core credits it, once
  *   per instance: a council of several creatures pays once.
+ * - Kills in a guild tabard: GuildLevels.XP.TabardKill, and GuildLevels.Rep.TabardKill guild rep,
+ *   for each creature kill that rewards a living member wearing one. Flat amounts that no realm
+ *   rate touches.
  *
  * Each real player also earns guild rep (GuildLevelsRep.cpp) from the guild XP they bring in:
- * their quest's share, and the whole of a boss's guild XP for everyone in the guild group.
+ * their quest's share, and the whole of a boss's guild XP for everyone in the guild group. Tabard
+ * kills pay their own rep instead.
  *
  * Only real players earn guild XP. Bots that are members of the guild count toward the size of
  * a guild group, so one player with four guild bots is a full guild group, but a guild with no
@@ -25,6 +29,7 @@
 #include "Creature.h"
 #include "Formulas.h"
 #include "GameTime.h"
+#include "KillRewarder.h"
 #include "ObjectMgr.h"
 #include "Map.h"
 #include "Player.h"
@@ -143,7 +148,7 @@ class GuildLevelsXPPlayerScript : public PlayerScript
 {
 public:
     GuildLevelsXPPlayerScript() : PlayerScript("GuildLevelsXPPlayerScript", {
-        PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST }) { }
+        PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_REWARD_KILL_REWARDER }) { }
 
     // Also called to fill in the quest giver's windows: only note the XP here.
     void OnPlayerQuestComputeXP(Player* player, Quest const* quest, uint32& xpValue) override
@@ -170,6 +175,27 @@ public:
         uint64 xp = uint64(double(xpValue) * GetConfig().questShare);
         AddXP(player->GetGuildId(), xp, { player->GetGUID().GetCounter() });
         GainGuildRep(player, xp);
+    }
+
+    // Fires for everyone the kill rewards: whoever tagged the creature, or each of their group in
+    // reach. The same creatures that give XP count, gray ones to this member excepted.
+    void OnPlayerRewardKillRewarder(Player* player, KillRewarder* rewarder, bool /*isDungeon*/, float& /*rate*/) override
+    {
+        uint32 xp = GetConfig().tabardKillXP;
+        uint32 rep = GetConfig().repTabardKill;
+        if ((!xp && !rep) || !GetConfig().enabled || !player->GetGuildId() || !player->IsAlive() || !WearsGuildTabard(player))
+            return;
+        if (!IsRealPlayer(player) && !GetConfig().botGuildsEarn)
+            return;
+
+        Creature* victim = rewarder->GetVictim()->ToCreature();
+        if (!victim || victim->IsTotem() || victim->IsPet() || victim->IsCritter() || victim->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_XP))
+            return;
+        if (victim->GetLevel() <= Acore::XP::GetGrayLevel(player->GetLevel()))
+            return;
+
+        AddXP(player->GetGuildId(), xp, { player->GetGUID().GetCounter() });
+        GainFlatGuildRep(player, rep);
     }
 };
 
